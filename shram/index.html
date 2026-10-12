@@ -1,0 +1,2483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Shram: browser workspaces with an AI agent you can point at the page. Every screen on desktop, iPad and phone.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Shram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400&family=JetBrains+Mono:wght@400;500&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+<style>
+/* Layout: fixed docs sidebar (15rem) + one narrow reading column (36rem); a floating annotation toolbar bottom-right works on every page. */
+:root {
+  --bg: #fbfbfc;
+  --surface: #ffffff;
+  --ink: #15171d;
+  --body: #3b3e48;
+  --muted: #6d7180;
+  --line: rgba(22, 26, 44, 0.09);
+  --tint: rgba(22, 26, 44, 0.04);
+  --tint-strong: rgba(22, 26, 44, 0.08);
+  --accent: #3156e8;
+  --accent-soft: rgba(49, 86, 232, 0.12);
+  --on-accent: #ffffff;
+  --ok: #17905f;
+  --ok-soft: rgba(23, 144, 95, 0.14);
+  --hl: rgba(49, 86, 232, 0.08);
+  --overlay: rgba(251, 251, 252, 0.72);
+  --shadow: 0 1px 2px rgba(15, 18, 30, 0.06), 0 8px 28px rgba(15, 18, 30, 0.10);
+  /* the hero mock is a user's app: it keeps its own look in both themes */
+  --mock-bg: #ffffff;
+  --mock-ink: #16181d;
+  --mock-muted: #6b6f7b;
+  --mock-line: #e8e9ee;
+  --mock-btn: #1d1f26;
+  --mock-brand: #3156e8;
+  --mock-chrome: #f1f2f5;
+
+  --font-body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-deva: "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif;
+
+  --size-body: 0.9375rem;
+  --lead-body: 1.6;
+  --size-small: 0.8125rem;
+  --size-caption: 0.75rem;
+  --size-h1: 1.625rem;
+  --size-h2: 1.0625rem;
+  --radius: 0.5rem;
+  --nav-w: 15rem;
+  --col: 36rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1014; --surface: #161920; --ink: #eef0f5; --body: #c2c6d1; --muted: #8b90a0;
+    --line: rgba(255, 255, 255, 0.09); --tint: rgba(255, 255, 255, 0.045); --tint-strong: rgba(255, 255, 255, 0.09);
+    --accent: #7d95ff; --accent-soft: rgba(125, 149, 255, 0.16); --on-accent: #0e1014;
+    --ok: #41cf95; --ok-soft: rgba(65, 207, 149, 0.16); --hl: rgba(125, 149, 255, 0.12);
+    --overlay: rgba(14, 16, 20, 0.72);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 28px rgba(0, 0, 0, 0.45);
+    --mock-chrome: #22252d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1014; --surface: #161920; --ink: #eef0f5; --body: #c2c6d1; --muted: #8b90a0;
+  --line: rgba(255, 255, 255, 0.09); --tint: rgba(255, 255, 255, 0.045); --tint-strong: rgba(255, 255, 255, 0.09);
+  --accent: #7d95ff; --accent-soft: rgba(125, 149, 255, 0.16); --on-accent: #0e1014;
+  --ok: #41cf95; --ok-soft: rgba(65, 207, 149, 0.16); --hl: rgba(125, 149, 255, 0.12);
+  --overlay: rgba(14, 16, 20, 0.72);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 28px rgba(0, 0, 0, 0.45);
+  --mock-chrome: #22252d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-padding-top: 4.5rem; }
+body {
+  background: var(--bg); color: var(--body);
+  font-family: var(--font-body); font-size: var(--size-body); line-height: var(--lead-body);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent-soft); color: var(--ink); }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+button { font: inherit; color: inherit; }
+code, pre, kbd { font-family: var(--font-mono); }
+
+/* ---------- side nav ---------- */
+.side-nav {
+  position: fixed; top: 0; bottom: 0; left: 0; width: var(--nav-w);
+  padding: calc(1.75rem + env(safe-area-inset-top, 0px)) 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  display: flex; flex-direction: column; gap: 1.5rem;
+  border-right: 1px solid var(--line); background: var(--bg); z-index: 20;
+}
+.wordmark { display: inline-flex; align-items: baseline; gap: 0.45rem; color: var(--ink); text-decoration: none; padding-left: 0.5rem; }
+.wordmark:hover { text-decoration: none; }
+.wordmark b { font-weight: 650; font-size: 1.125rem; letter-spacing: -0.02em; }
+.wordmark span { font-family: var(--font-deva); font-size: 1rem; color: var(--muted); }
+.nav-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-between; gap: 1.5rem; }
+.nav-links { display: flex; flex-direction: column; gap: 1px; }
+.nav-section { font-size: var(--size-caption); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 1rem 0.5rem 0.35rem; }
+.nav-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  padding: 0.3rem 0.5rem; border-radius: 6px; color: var(--muted); font-size: 0.875rem;
+}
+.nav-link:hover { color: var(--ink); background: var(--tint); text-decoration: none; }
+.nav-link.active { color: var(--ink); font-weight: 550; }
+.nav-badge { font-family: var(--font-mono); font-size: 0.625rem; padding: 0.05rem 0.35rem; border-radius: 4px; background: var(--tint-strong); color: var(--muted); font-weight: 400; }
+.nav-toc { display: flex; flex-direction: column; margin: 0.15rem 0 0.4rem 0.5rem; padding-left: 0.6rem; border-left: 1px solid var(--line); }
+.nav-toc button {
+  all: unset; cursor: pointer; font-size: var(--size-small); color: var(--muted); padding: 0.18rem 0.4rem; border-radius: 4px;
+}
+.nav-toc button:hover { color: var(--ink); }
+.nav-toc button:focus-visible { outline: 2px solid var(--accent); }
+.nav-meta { display: flex; gap: 0.4rem; align-items: center; font-size: var(--size-caption); color: var(--muted); padding: 0 0.5rem; flex-wrap: wrap; }
+.nav-meta a { color: var(--muted); }
+.nav-meta a:hover { color: var(--ink); }
+
+/* ---------- mobile nav ---------- */
+.mobile-bar {
+  display: none; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.7rem 16px; background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.mobile-bar .wordmark { padding-left: 0; }
+.menu-btn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 0.3rem 0.85rem; font-size: var(--size-small); cursor: pointer; }
+.mobile-sheet { display: none; padding: 0.5rem 16px 1.25rem; border-bottom: 1px solid var(--line); background: var(--bg); }
+.mobile-sheet.open { display: block; }
+@media (max-width: 980px) {
+  .side-nav { display: none; }
+  .mobile-bar { display: flex; }
+}
+
+/* ---------- article ---------- */
+.main { margin-left: var(--nav-w); padding-inline: 2rem; }
+@media (max-width: 980px) { .main { margin-left: 0; padding-inline: 16px; } }
+.page { max-width: var(--col); margin: 0 auto; padding-block: 4.5rem 3rem; }
+@media (max-width: 980px) { .page { padding-block: 2rem 2rem; } }
+.page > section, .page > header { margin-bottom: 2.75rem; }
+.page h1 { font-size: var(--size-h1); line-height: 1.2; letter-spacing: -0.02em; color: var(--ink); font-weight: 600; margin: 0 0 0.6rem; text-wrap: balance; }
+.page h2 { font-size: var(--size-h2); color: var(--ink); font-weight: 600; letter-spacing: -0.01em; margin: 0 0 0.6rem; text-wrap: balance; }
+.page h3 { font-size: 0.9375rem; color: var(--ink); font-weight: 600; margin: 1.4rem 0 0.4rem; }
+.page p { margin: 0 0 0.85rem; max-width: 65ch; }
+.page ul, .page ol { margin: 0 0 0.9rem; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.page li::marker { color: var(--muted); }
+.page strong { color: var(--ink); font-weight: 600; }
+.lede { font-size: 1rem; color: var(--body); }
+.page :not(pre) > code {
+  font-size: 0.8125em; padding: 0.1em 0.35em; border-radius: 4px; background: var(--tint-strong); color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.inline-icon { display: inline-block; width: 1.35em; height: 1.35em; vertical-align: -0.33em; margin: 0 0.05em; }
+
+.stats { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.75rem; }
+.stat { display: inline-flex; align-items: baseline; gap: 0.4rem; color: var(--muted); font-size: var(--size-small); }
+.stat b { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; font-size: 0.9375rem; }
+.cmd {
+  display: inline-flex; align-items: center; gap: 0.5rem; max-width: 100%; min-width: 0;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 0.25rem 0.3rem 0.25rem 0.85rem;
+}
+.page .cmd code { background: none; padding: 0; }
+.cmd code { font-size: 0.75rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.cmd code::before { content: "$ "; color: var(--muted); }
+.icon-btn {
+  display: inline-grid; place-items: center; width: 1.75rem; height: 1.75rem; flex: none;
+  border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover { background: var(--tint-strong); color: var(--ink); }
+.icon-btn svg { width: 1rem; height: 1rem; }
+
+.callout { border: 1px solid var(--line); background: var(--tint); border-radius: var(--radius); padding: 0.75rem 1rem; font-size: 0.875rem; }
+.callout p { margin: 0; }
+
+pre.code {
+  margin: 0 0 1rem; padding: 0.9rem 1rem; border-radius: var(--radius); background: var(--tint); border: 1px solid var(--line);
+  font-size: 0.75rem; line-height: 1.65; color: var(--ink); overflow-x: auto; white-space: pre;
+}
+pre.code .c { color: var(--muted); }
+pre.code .k { color: var(--accent); }
+.code-wrap { position: relative; }
+.code-wrap .icon-btn { position: absolute; top: 0.4rem; right: 0.4rem; background: var(--surface); border: 1px solid var(--line); }
+
+.table-wrap { overflow-x: auto; margin: 0 0 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
+table { border-collapse: collapse; width: 100%; font-size: var(--size-small); }
+th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: var(--size-caption); letter-spacing: 0.04em; text-transform: uppercase; background: var(--tint); }
+tr:last-child td { border-bottom: 0; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 0.75rem; white-space: nowrap; }
+td code { white-space: nowrap; }
+
+.doc-links { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.doc-links a { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 0.875rem; }
+.doc-links a:hover { text-decoration: none; color: var(--accent); }
+.doc-links a::after { content: "→"; color: var(--muted); }
+.page-nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: 0.875rem; }
+.page-nav a { display: flex; flex-direction: column; gap: 0.1rem; color: var(--ink); }
+.page-nav a span { font-size: var(--size-caption); color: var(--muted); }
+.page-nav a.next { text-align: right; margin-left: auto; }
+
+.footer { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; font-size: var(--size-small); color: var(--muted); padding-top: 1.25rem; border-top: 1px solid var(--line); margin-top: 3rem; }
+.footer p { margin: 0; }
+.footer a { color: var(--ink); }
+
+/* ---------- hero demo ---------- */
+.hero-demo { position: relative; margin: 0 0 2.75rem; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; box-shadow: var(--shadow); max-width: 100%; }
+.hd-stage { position: absolute; top: 0; left: 0; width: 560px; height: 340px; transform-origin: 0 0; font-family: var(--font-body); }
+.hd-chrome { height: 28px; display: flex; align-items: center; gap: 10px; padding: 0 10px; background: var(--mock-chrome); border-bottom: 1px solid var(--line); }
+.hd-dots { display: flex; gap: 5px; }
+.hd-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--tint-strong); }
+.hd-url { flex: 1; height: 17px; border-radius: 5px; background: var(--surface); font: 9.5px/17px var(--font-mono); color: var(--muted); padding: 0 8px; white-space: nowrap; overflow: hidden; }
+.hd-body { display: grid; grid-template-columns: 1fr 182px; height: 312px; }
+.hd-prev { position: relative; background: var(--mock-bg); color: var(--mock-ink); padding: 14px 20px; overflow: hidden; transition: box-shadow 0.3s; }
+.hd-prev.annotating { box-shadow: inset 0 0 0 2px var(--accent-soft); }
+.hd-mnav { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--mock-muted); margin-bottom: 26px; }
+.hd-mnav b { color: var(--mock-ink); font-size: 11px; letter-spacing: -0.01em; }
+.hd-mnav span { display: flex; gap: 12px; }
+.hd-mnav i { font-style: normal; }
+.hd-eyebrow { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mock-muted); margin-bottom: 6px; }
+.hd-head { font-size: 24px; line-height: 1.12; font-weight: 650; letter-spacing: 0.01em; margin: 0 0 8px; max-width: 270px; transition: letter-spacing 0.5s ease; }
+.hd-head.fixed { letter-spacing: -0.03em; }
+.hd-sub { font-size: 10.5px; color: var(--mock-muted); max-width: 250px; margin: 0 0 14px; line-height: 1.5; }
+.hd-cta { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 7px 12px; border-radius: 7px; background: var(--mock-btn); color: #ffffff; transition: background 0.5s ease; }
+.hd-cta.fixed { background: var(--mock-brand); }
+.hd-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 22px; }
+.hd-cards div { border: 1px solid var(--mock-line); border-radius: 7px; padding: 8px; font-size: 9px; color: var(--mock-muted); }
+.hd-cards b { display: block; color: var(--mock-ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.hd-chat { border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; font-size: 10px; color: var(--body); }
+.hd-chat-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); color: var(--ink); font-weight: 600; }
+.hd-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--line); font-size: 9px; font-weight: 500; color: var(--muted); transition: all 0.2s; }
+.hd-toggle.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.hd-toggle svg { width: 10px; height: 10px; }
+.hd-msgs { flex: 1; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; overflow: hidden; justify-content: flex-end; }
+.hd-msg { padding: 6px 8px; border-radius: 8px; line-height: 1.4; animation: hdIn 0.25s ease both; }
+.hd-msg.user { background: var(--tint-strong); color: var(--ink); align-self: flex-end; max-width: 92%; }
+.hd-msg.agent { padding: 0 2px; }
+.hd-chips { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.hd-chips span { font: 8px/1.6 var(--font-mono); padding: 0 5px; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.hd-tool { font: 8.5px/1.5 var(--font-mono); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; color: var(--muted); animation: hdIn 0.25s ease both; }
+.hd-tool b { color: var(--ok); font-weight: 500; }
+.hd-tool i { color: #d0473d; font-style: normal; }
+@keyframes hdIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.hd-input { margin: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-height: 42px; display: flex; gap: 6px; align-items: flex-end; justify-content: space-between; }
+.hd-input span { color: var(--ink); line-height: 1.35; }
+.hd-input span:empty::before { content: "Ask the agent…"; color: var(--muted); }
+.hd-send { flex: none; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+.hd-send svg { width: 9px; height: 9px; color: var(--bg); }
+.hd-hover { position: absolute; border: 1.5px solid var(--accent); background: var(--hl); border-radius: 4px; pointer-events: none; opacity: 0; transition: opacity 0.15s, all 0.25s ease; }
+.hd-hover.show { opacity: 1; }
+.hd-hover em { position: absolute; left: -1.5px; top: -17px; font: 500 8.5px/15px var(--font-mono); font-style: normal; padding: 0 5px; border-radius: 3px; background: var(--accent); color: var(--on-accent); white-space: nowrap; }
+.hd-badge { position: absolute; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; font: 600 9px/1 var(--font-body); background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 2px var(--mock-bg); animation: pop 0.3s cubic-bezier(.3,1.6,.6,1) both; transition: background 0.3s; }
+.hd-badge.ok { background: var(--ok); }
+.hd-sel { position: absolute; border: 1.5px dashed var(--accent); border-radius: 4px; pointer-events: none; transition: border-color 0.3s; }
+.hd-sel.ok { border-color: var(--ok); border-style: solid; }
+@keyframes pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.hd-cursor { position: absolute; left: 0; top: 0; width: 16px; height: 16px; pointer-events: none; transition: transform 0.7s cubic-bezier(.45,.05,.25,1); z-index: 5; filter: drop-shadow(0 1px 1px rgba(0,0,0,.3)); }
+.hd-cursor svg { width: 16px; height: 16px; transition: transform 0.12s; }
+.hd-cursor.down svg { transform: scale(0.82); }
+.hd-caption { position: absolute; right: 10px; bottom: 8px; font: 9px var(--font-mono); color: var(--muted); }
+
+/* ---------- try-it demo ---------- */
+.demo-elements { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; border: 1px dashed var(--line); border-radius: 12px; margin-bottom: 1rem; }
+.button-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.demo-button { border: 0; padding: 0.5rem 1rem; border-radius: 8px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: var(--size-small); cursor: pointer; }
+.demo-button.secondary { background: var(--tint-strong); color: var(--ink); }
+.demo-button.brand { background: var(--accent); color: var(--on-accent); }
+.demo-input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 0.55rem 0.75rem; background: var(--surface); color: var(--ink); font: inherit; font-size: 0.875rem; }
+.demo-card { border: 1px solid var(--line); border-radius: 10px; padding: 1rem; background: var(--surface); }
+.demo-card h3 { margin: 0 0 0.3rem; }
+.demo-card p { margin: 0; font-size: 0.875rem; }
+.live-output-wrap { margin-top: 0.25rem; }
+.live-output-head { display: flex; justify-content: space-between; align-items: center; font-size: var(--size-caption); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.4rem; }
+#live-output { max-height: 16rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.animation-demo { padding: 1.25rem; border: 1px dashed var(--line); border-radius: 12px; display: flex; flex-direction: column; gap: 0.75rem; }
+.progress-track { height: 6px; border-radius: 999px; background: var(--tint-strong); overflow: hidden; }
+.progress-bar { height: 100%; width: 40%; border-radius: inherit; background: var(--accent); animation: sweep 2.4s cubic-bezier(.6,0,.4,1) infinite alternate; }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.spinner-row { display: flex; gap: 0.6rem; align-items: center; font-size: var(--size-small); color: var(--muted); }
+.spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--tint-strong); border-top-color: var(--accent); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+html.paused *, html.paused *::before, html.paused *::after { animation-play-state: paused !important; }
+
+/* in-page modal */
+.modal-overlay { position: fixed; inset: 0; background: var(--overlay); backdrop-filter: blur(4px); z-index: 60; animation: fade 0.2s ease both; }
+.modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(400px, calc(100% - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 1.25rem; z-index: 61; animation: modalIn 0.22s cubic-bezier(.3,1.4,.6,1) both; }
+.modal h3 { margin: 0 0 0.6rem; color: var(--ink); font-size: 1rem; }
+.modal p { font-size: 0.875rem; margin: 0 0 0.6rem; }
+.modal-foot { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes modalIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } }
+
+/* ---------- annotation toolbar (live on every page) ---------- */
+.annot-toolbar {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 80;
+  display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 999px;
+  background: var(--ink); color: var(--bg); box-shadow: var(--shadow);
+}
+.annot-toolbar button { all: unset; cursor: pointer; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; color: var(--bg); position: relative; }
+.annot-toolbar button:hover { background: rgba(127, 127, 127, 0.25); }
+.annot-toolbar button:focus-visible { outline: 2px solid var(--accent); }
+.annot-toolbar button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.annot-toolbar svg { width: 18px; height: 18px; }
+.annot-toolbar .tb-extra { display: none; align-items: center; gap: 2px; }
+.annot-toolbar.open .tb-extra { display: flex; }
+.annot-count { position: absolute; top: 1px; right: 1px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font: 600 9px/15px var(--font-body); text-align: center; }
+.annot-count:empty { display: none; }
+.tb-sep { width: 1px; height: 18px; background: rgba(127, 127, 127, 0.35); margin: 0 3px; }
+.tb-mode { font: 600 10px/1 var(--font-mono); }
+
+.annot-hover { position: absolute; pointer-events: none; z-index: 70; border: 1.5px solid var(--accent); background: var(--hl); border-radius: 4px; display: none; }
+.annot-hover.show { display: block; }
+.annot-hover span { position: absolute; left: -1.5px; bottom: 100%; margin-bottom: 3px; font: 500 11px/18px var(--font-mono); padding: 0 6px; border-radius: 4px; background: var(--accent); color: var(--on-accent); white-space: nowrap; max-width: 70vw; overflow: hidden; text-overflow: ellipsis; }
+.annot-marker { position: absolute; z-index: 71; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font: 600 11px/1 var(--font-body); box-shadow: 0 0 0 2px var(--bg), var(--shadow); cursor: pointer; animation: pop 0.3s cubic-bezier(.3,1.6,.6,1) both; border: 0; padding: 0; }
+.annot-marker.dot { width: 14px; height: 14px; font-size: 0; }
+.annot-outline { position: absolute; z-index: 69; pointer-events: none; border: 1.5px dashed var(--accent); border-radius: 4px; }
+.annot-pop {
+  position: fixed; z-index: 90; width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: var(--shadow); padding: 0.75rem; animation: modalPop 0.18s ease both;
+}
+@keyframes modalPop { from { opacity: 0; transform: translateY(4px) scale(0.98); } }
+.annot-pop .pop-head { font: 500 11px/1.4 var(--font-mono); color: var(--accent); margin-bottom: 0.5rem; overflow-wrap: anywhere; }
+.annot-pop textarea { width: 100%; min-height: 4.5rem; resize: vertical; border: 1px solid var(--line); border-radius: 8px; padding: 0.5rem 0.6rem; background: var(--bg); color: var(--ink); font: inherit; font-size: 0.875rem; }
+.annot-pop .pop-foot { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
+.annot-pop .pop-foot small { color: var(--muted); font-size: var(--size-caption); }
+.btn { border: 0; border-radius: 8px; padding: 0.4rem 0.8rem; font-size: var(--size-small); font-weight: 600; cursor: pointer; background: var(--tint-strong); color: var(--ink); }
+.btn.primary { background: var(--accent); color: var(--on-accent); }
+.btn.ghost { background: transparent; color: var(--muted); }
+.btn.danger { background: transparent; color: #d0473d; }
+.toast { position: fixed; left: 50%; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 95; background: var(--ink); color: var(--bg); font-size: var(--size-small); padding: 0.45rem 0.9rem; border-radius: 999px; box-shadow: var(--shadow); animation: modalPop 0.18s ease both; }
+html.annotating .main, html.annotating .side-nav { cursor: crosshair; }
+html.annotating .main *, html.annotating .side-nav * { cursor: crosshair !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .progress-bar { transform: translateX(60%); }
+}
+
+/* ---------- status + device tokens ---------- */
+:root { --warn: #b7741a; --warn-soft: rgba(183, 116, 26, 0.13); --err: #cf4436; --err-soft: rgba(207, 68, 54, 0.11); --bezel: #1a1c22; --bezel-edge: #3a3d46; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --warn: #e3a64a; --warn-soft: rgba(227, 166, 74, 0.15); --err: #f0705f; --err-soft: rgba(240, 112, 95, 0.14); --bezel: #2b2e36; --bezel-edge: #484c57; } }
+:root[data-theme="dark"] { --warn: #e3a64a; --warn-soft: rgba(227, 166, 74, 0.15); --err: #f0705f; --err-soft: rgba(240, 112, 95, 0.14); --bezel: #2b2e36; --bezel-edge: #484c57; }
+
+/* developer mode: tech content hidden until unlocked */
+[data-dev] { display: none !important; }
+html.dev [data-dev] { display: revert !important; }
+html.dev section[data-dev], html.dev div[data-dev] { display: block !important; }
+html.dev span[data-dev] { display: inline-flex !important; }
+.dev-switch { display: none; align-items: center; gap: 0.5rem; font-size: var(--size-caption); color: var(--muted); padding: 0 0.5rem; }
+html.dev .dev-switch { display: flex; }
+.switch { position: relative; width: 28px; height: 16px; border-radius: 999px; border: 0; background: var(--tint-strong); cursor: pointer; padding: 0; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform 0.15s; }
+.switch[aria-checked="true"] { background: var(--accent); }
+.switch[aria-checked="true"]::after { transform: translateX(12px); }
+.dev-pill { font-family: var(--font-mono); font-size: 0.625rem; padding: 0.05rem 0.4rem; border-radius: 4px; background: var(--accent-soft); color: var(--accent); }
+.wordmark { user-select: none; -webkit-user-select: none; }
+.wordmark.tap b { animation: tap 0.18s ease; }
+@keyframes tap { 50% { transform: scale(0.94); } }
+
+/* wide pages for device frames */
+.page.wide { max-width: 60rem; }
+.screen-grid { display: flex; flex-wrap: wrap; gap: 1.5rem 1.25rem; align-items: flex-start; margin-bottom: 1rem; }
+.screen-grid > figure { margin: 0; flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.screen-grid > figure.ipad { flex: 1 1 340px; }
+figcaption { font-size: var(--size-small); color: var(--muted); }
+figcaption b { color: var(--ink); font-weight: 600; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; margin-bottom: 0.9rem; }
+.controls label { font-size: var(--size-caption); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.seg { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--tint-strong); gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; color: var(--muted); padding: 0.3rem 0.7rem; border-radius: 7px; font-size: var(--size-small); font-weight: 550; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.seg button:hover { color: var(--ink); }
+
+/* device frames */
+.device-host { width: 100%; min-width: 0; }
+.device-box { position: relative; margin: 0 auto; }
+.device { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+.device .screen { position: relative; overflow: auto; scrollbar-width: none; container-type: inline-size; container-name: scr; background: var(--bg); color: var(--body); font-family: var(--font-body); font-size: 14px; line-height: 1.5; text-align: left; }
+.device .screen::-webkit-scrollbar { display: none; }
+.device.desktop { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); background: var(--surface); }
+.device.desktop .bar { height: 36px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--tint); border-bottom: 1px solid var(--line); }
+.device.desktop .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--tint-strong); display: inline-block; margin-right: 4px; }
+.device.desktop .bar span { flex: 1; max-width: 420px; margin: 0 auto; height: 22px; border-radius: 6px; background: var(--surface); font: 12px/22px var(--font-mono); color: var(--muted); text-align: center; }
+.device.ipad, .device.phone { background: var(--bezel); box-shadow: inset 0 0 0 2px var(--bezel-edge), var(--shadow); }
+.device.ipad { padding: 22px; border-radius: 40px; }
+.device.ipad .screen { border-radius: 20px; }
+.device.phone { padding: 14px; border-radius: 56px; }
+.device.phone .screen { border-radius: 44px; }
+.device.phone::after { content: ""; position: absolute; top: 26px; left: 50%; width: 110px; height: 30px; margin-left: -55px; border-radius: 20px; background: var(--bezel); z-index: 3; }
+.device.phone .screen { padding-top: 54px; }
+
+/* ================= mock UI (Shram screens) ================= */
+.m-app { position: relative; min-height: 100%; color: var(--body); }
+.m-app h1, .m-app h2, .m-app h3 { color: var(--ink); margin: 0; text-wrap: balance; }
+.m-app p { margin: 0; }
+.m-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 12px; border-radius: 8px; font: 600 13px/1.3 var(--font-body); background: var(--tint-strong); color: var(--ink); border: 0; white-space: nowrap; cursor: pointer; }
+.m-btn.primary { background: var(--ink); color: var(--bg); }
+.m-btn.accent { background: var(--accent); color: var(--on-accent); }
+.m-btn.danger { background: transparent; color: var(--err); box-shadow: inset 0 0 0 1px var(--line); }
+.m-btn.ghost { background: transparent; color: var(--muted); }
+.m-btn.lg { padding: 10px 16px; font-size: 14px; }
+.m-btn.busy { opacity: 0.85; cursor: progress; }
+.m-btn svg { width: 15px; height: 15px; }
+.m-input { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); color: var(--muted); font-size: 13px; min-width: 0; }
+.m-input.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); color: var(--ink); }
+.m-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.m-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; background: var(--muted); }
+.m-dot.ok { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+.m-dot.warn { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-soft); }
+.m-dot.err { background: var(--err); box-shadow: 0 0 0 3px var(--err-soft); }
+.m-dot.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.35; } }
+.m-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: var(--tint-strong); color: var(--muted); white-space: nowrap; }
+.m-tag.warn { background: var(--warn-soft); color: var(--warn); }
+.m-tag.err { background: var(--err-soft); color: var(--err); }
+.m-tag.ok { background: var(--ok-soft); color: var(--ok); }
+.m-word { display: inline-flex; align-items: baseline; gap: 6px; font-weight: 650; color: var(--ink); font-size: 15px; letter-spacing: -0.01em; }
+.m-word span { font-family: var(--font-deva); font-weight: 400; color: var(--muted); font-size: 14px; }
+.m-mono { font-family: var(--font-mono); font-size: 12px; }
+.m-app code { font-family: var(--font-mono); font-size: 12px; background: var(--tint-strong); border-radius: 4px; padding: 0 5px; color: var(--ink); }
+.m-icon { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: var(--muted); flex: none; }
+.m-icon svg { width: 16px; height: 16px; }
+.m-icon.on { background: var(--accent); color: var(--on-accent); }
+.m-icon.stop { color: var(--err); }
+
+/* landing */
+.m-landing { max-width: 880px; margin: 0 auto; padding: 28px 32px 64px; }
+.m-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 56px; }
+.m-top nav { display: flex; gap: 18px; align-items: center; font-size: 13px; color: var(--muted); }
+.m-kicker { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.m-hero h1 { font-size: 40px; line-height: 1.12; letter-spacing: -0.03em; font-weight: 650; max-width: 16ch; margin: 8px 0 16px; }
+.m-lede { max-width: 52ch; font-size: 16px; margin-bottom: 24px !important; }
+.m-steps { margin-top: 64px; }
+.m-steps h2, .m-yaml h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+.m-steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: st; }
+.m-steps li { counter-increment: st; position: relative; padding: 16px 16px 16px 52px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 14px; }
+.m-steps li::before { content: counter(st); position: absolute; left: 16px; top: 16px; width: 22px; height: 22px; border-radius: 6px; background: var(--tint-strong); color: var(--ink); font-size: 12px; font-weight: 650; display: grid; place-items: center; }
+.m-steps strong { color: var(--ink); }
+.m-add { color: var(--ok); font-family: var(--font-mono); font-weight: 600; }
+.m-del { color: var(--err); font-family: var(--font-mono); font-weight: 600; }
+.m-yaml { margin-top: 44px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.m-pre { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font: 12.5px/1.6 var(--font-mono); color: var(--body); white-space: pre; overflow-x: auto; }
+@container scr (min-width: 601px) and (max-width: 1100px) {
+  .m-landing { padding-inline: 24px; }
+  .m-dash { padding: 24px; }
+}
+@container scr (max-width: 600px) {
+  .m-landing { padding: 16px 16px 40px; }
+  .m-top { margin-bottom: 32px; }
+  .m-top nav .m-link { display: none; }
+  .m-hero h1 { font-size: 31px; }
+  .m-yaml { grid-template-columns: 1fr; }
+  .m-hero .m-btn { width: 100%; }
+}
+
+/* auth */
+.m-auth { display: flex; flex-direction: column; min-height: 100%; }
+.m-auth .m-top { padding: 20px 28px; margin: 0; }
+.m-auth-main { flex: 1; display: grid; place-items: center; padding: 24px 16px 64px; }
+.m-card { width: min(380px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 28px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+.m-mark { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--ink); color: var(--bg); font: 22px/1 var(--font-deva); }
+.m-card h2 { font-size: 20px; letter-spacing: -0.02em; }
+.m-card .m-btn { width: 100%; }
+.m-fine { font-size: 12px; color: var(--muted); }
+.m-alert { display: flex; gap: 10px; align-items: flex-start; border: 1px solid color-mix(in srgb, var(--err) 45%, transparent); background: var(--err-soft); color: var(--err); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.m-avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 650; font-size: 14px; flex: none; }
+.m-who { display: flex; gap: 12px; align-items: center; }
+.m-who b { color: var(--ink); display: block; }
+.m-who small { color: var(--muted); font-size: 12px; }
+.m-admin { width: min(640px, 100%); }
+.m-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.m-row:first-of-type { border-top: 0; }
+.m-row .m-who { min-width: 0; }
+.m-row .m-actions { display: flex; gap: 6px; }
+.m-st { display: none !important; }
+[data-state="out"] .st-out, [data-state="denied"] .st-out, [data-state="denied"] .st-denied, [data-state="waiting"] .st-waiting, [data-state="admin"] .st-admin { display: flex !important; }
+
+/* dashboard */
+.m-dash { max-width: 1200px; margin: 0 auto; padding: 32px; }
+.m-dash > header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+.m-dash > header > div { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
+.m-dash h1 { font-size: 22px; letter-spacing: -0.02em; display: flex; align-items: baseline; gap: 8px; }
+.m-dash h1 span { font-family: var(--font-deva); font-weight: 400; color: var(--muted); font-size: 18px; }
+.m-sub { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 0 0 10px !important; }
+.m-list { display: grid; gap: 10px; }
+.m-wcard { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.m-winfo { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.m-wname { font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-wname span { color: var(--muted); font-weight: 450; }
+.m-wmeta { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; }
+.m-actions { display: flex; gap: 6px; flex: none; }
+.m-modal-wrap { display: none; position: absolute; inset: 0; background: var(--overlay); backdrop-filter: blur(3px); place-items: center; padding: 16px; z-index: 5; }
+[data-modal="on"] .m-modal-wrap { display: grid; }
+.m-modal { width: min(500px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; }
+.m-modal h3 { font-size: 17px; }
+.m-grab { display: none; width: 36px; height: 5px; border-radius: 3px; background: var(--tint-strong); margin: -8px auto 2px; }
+.m-or { display: flex; align-items: center; gap: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.m-or::before, .m-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.m-repos { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.m-repo { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; font-size: 13px; border-top: 1px solid var(--line); color: var(--ink); }
+.m-repo:first-child { border-top: 0; }
+.m-repo small { color: var(--muted); font-size: 11.5px; }
+.m-repo.sel { background: var(--accent-soft); }
+.m-radio { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--line); flex: none; }
+.m-repo.sel .m-radio { border: 4px solid var(--accent); }
+.m-foot { display: flex; justify-content: flex-end; gap: 8px; }
+@container scr (max-width: 600px) {
+  .m-dash { padding: 12px 12px 32px; }
+  .m-dash > header .m-link { display: none; }
+  .m-wcard { flex-direction: column; align-items: stretch; gap: 12px; }
+  .m-actions { display: grid; grid-template-columns: 1fr 1fr 1fr auto; }
+  .m-actions.one { grid-template-columns: 1fr auto; }
+  .m-modal-wrap { place-items: end stretch; padding: 0; }
+  .m-modal { width: 100%; border-radius: 22px 22px 0 0; padding: 18px 16px 28px; }
+  .m-grab { display: block; }
+  .m-foot .m-btn { flex: 1; }
+}
+
+/* workspace */
+.m-ws { display: grid; grid-template-columns: 230px minmax(300px, 1fr) 1.3fr; height: 100%; min-height: 0; }
+.screen:has(.m-ws) { overflow: hidden; }
+.m-agents { border-right: 1px solid var(--line); background: var(--tint); display: flex; flex-direction: column; gap: 10px; padding: 12px; min-height: 0; }
+.m-agents .m-btn { justify-content: flex-start; }
+.m-agents h4 { margin: 8px 4px 2px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+.m-chatrow { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 13px; color: var(--body); }
+.m-chatrow span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-chatrow small { color: var(--muted); font-size: 11px; }
+.m-chatrow.active { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.m-agents .m-spacer { flex: 1; }
+.m-chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.m-chat-head { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 12px; border-bottom: 1px solid var(--line); flex: none; }
+.m-chat-head b { color: var(--ink); font-weight: 600; font-size: 14px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-round { display: none; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); flex: none; position: relative; }
+.m-round svg { width: 16px; height: 16px; }
+.m-round .m-dot { position: absolute; top: 1px; right: 1px; width: 7px; height: 7px; box-shadow: 0 0 0 2px var(--surface); }
+.m-pill { display: none; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 2px; flex: none; }
+.m-pill .m-icon { width: 32px; height: 30px; border-radius: 999px; }
+.m-model { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
+.m-msgs { flex: 1; min-height: 0; overflow: hidden; padding: 14px; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; font-size: 13.5px; }
+.m-bubble { align-self: flex-end; max-width: 88%; background: var(--tint-strong); color: var(--ink); border-radius: 14px 14px 4px 14px; padding: 9px 12px; }
+.m-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.m-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; padding: 2px 8px 2px 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.m-chip i { font-style: normal; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--on-accent); font-size: 10px; font-weight: 650; }
+.m-chip.ok i { background: var(--ok); }
+.m-chip em { font-style: normal; color: var(--muted); font-size: 10.5px; }
+.m-tool { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); overflow: hidden; font-size: 12.5px; }
+.m-tool-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; color: var(--ink); }
+.m-tool-head span { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-diff { border-top: 1px solid var(--line); font: 11.5px/1.65 var(--font-mono); }
+.m-diff div { padding: 0 10px; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.m-diff .a { background: var(--ok-soft); color: var(--ok); }
+.m-diff .d { background: var(--err-soft); color: var(--err); }
+.m-approve { border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent); background: var(--warn-soft); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12.5px; }
+.m-approve b { color: var(--ink); }
+.m-approve .m-foot { justify-content: flex-start; }
+.m-working { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; }
+.m-composer { margin: 0 12px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: 8px; display: flex; flex-direction: column; gap: 8px; flex: none; }
+.m-composer .m-chips { margin: 0; }
+.m-composer-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+.m-send { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; flex: none; }
+.m-send svg { width: 14px; height: 14px; }
+.m-placeholder { color: var(--muted); font-size: 13.5px; padding: 2px 4px; }
+.m-preview { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.m-pbar { display: flex; align-items: center; gap: 2px; height: 48px; padding: 0 10px; border-bottom: 1px solid var(--line); flex: none; }
+.m-pbar .m-url { flex: 1; min-width: 0; margin: 0 6px; font: 11.5px/26px var(--font-mono); color: var(--muted); background: var(--tint); border-radius: 6px; padding: 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-pbody { flex: 1; min-height: 0; overflow: hidden; background: var(--tint); padding: 12px; }
+.m-sheet, .m-scrim { display: none; }
+@container scr (max-width: 1100px) {
+  .m-ws { grid-template-columns: minmax(300px, 1fr) 1fr; }
+  .m-agents { display: none; }
+  .m-round { display: grid; }
+  [data-drawer="on"] .m-agents { display: flex; position: absolute; inset: 0 auto 0 0; width: 300px; z-index: 6; background: var(--bg); box-shadow: var(--shadow); }
+  [data-drawer="on"] .m-scrim { display: block; position: absolute; inset: 0; background: var(--overlay); z-index: 5; }
+}
+@container scr (max-width: 600px) {
+  .m-ws { grid-template-columns: 1fr; }
+  .m-preview { display: none; }
+  .m-pill { display: flex; }
+  .m-model.wide { display: none; }
+  .m-chat-head { height: 60px; padding: 0 8px; }
+  .m-round { width: 44px; height: 44px; }
+  .m-pill .m-icon { width: 40px; height: 38px; }
+  .m-chat-head b { text-align: center; }
+  [data-drawer="on"] .m-agents { width: 100%; box-shadow: none; }
+  [data-sheet="on"] .m-scrim { display: block; position: absolute; inset: 0; background: var(--overlay); z-index: 5; }
+  [data-sheet="on"] .m-sheet { display: flex; flex-direction: column; position: absolute; left: 0; right: 0; bottom: 0; height: 84%; z-index: 6; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: var(--shadow); overflow: hidden; }
+}
+.m-sheet .m-grab { display: block; margin: 8px auto 4px; }
+.m-sheet-head { display: flex; align-items: center; gap: 4px; padding: 0 10px 8px; border-bottom: 1px solid var(--line); }
+.m-sheet-head b { flex: 1; text-align: center; color: var(--ink); font-size: 14px; }
+.m-sheet .m-pbody { padding: 10px; }
+.m-note { display: none; }
+[data-note="on"] .m-note { display: flex; flex-direction: column; gap: 8px; position: absolute; left: 10px; right: 10px; bottom: 14px; z-index: 8; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px; box-shadow: var(--shadow); }
+.m-note .m-mono { color: var(--accent); }
+.m-note .m-input { min-height: 54px; align-items: flex-start; color: var(--ink); }
+
+/* the user's app inside the preview (keeps its own look) */
+.m-site { container-type: inline-size; container-name: site; background: var(--mock-bg); color: var(--mock-ink); border-radius: 10px; border: 1px solid var(--mock-line); padding: 16px 20px 22px; height: 100%; overflow: hidden; }
+.m-site nav { display: flex; justify-content: space-between; font-size: 11px; color: var(--mock-muted); margin-bottom: 30px; }
+.m-site nav b { color: var(--mock-ink); font-size: 13px; }
+.m-site nav span { display: flex; gap: 14px; }
+.m-site nav i { font-style: normal; }
+.m-site small { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mock-muted); margin-bottom: 8px; }
+.m-site h5 { font-size: 30px; line-height: 1.1; letter-spacing: -0.03em; font-weight: 650; margin: 0 0 10px; max-width: 13ch; color: var(--mock-ink); }
+.m-site p { font-size: 12.5px; color: var(--mock-muted); max-width: 34ch; margin: 0 0 16px; }
+.m-site .cta { display: inline-block; padding: 9px 14px; border-radius: 8px; background: var(--mock-brand); color: #fff; font-size: 12.5px; font-weight: 600; }
+.m-site .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 26px; }
+.m-site .cards div { border: 1px solid var(--mock-line); border-radius: 8px; padding: 10px; font-size: 10.5px; color: var(--mock-muted); }
+.m-site .cards b { display: block; font-size: 16px; color: var(--mock-ink); }
+@container site (max-width: 380px) {
+  .m-site { padding: 14px; }
+  .m-site nav span i:not(:last-child) { display: none; }
+  .m-site h5 { font-size: 26px; }
+  .m-site .cards { grid-template-columns: 1fr 1fr; }
+  .m-site .cards div:last-child { display: none; }
+}
+.ann { position: relative; display: inline-block; outline: 1.5px dashed var(--accent); outline-offset: 4px; border-radius: 3px; }
+.ann.ok { outline-color: var(--ok); outline-style: solid; }
+.ann > i { position: absolute; top: -15px; left: -15px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 650 11px/1 var(--font-body); font-style: normal; background: var(--accent); color: var(--on-accent); box-shadow: 0 0 0 2px var(--mock-bg); letter-spacing: 0; }
+.ann.ok > i { background: var(--ok); }
+.ann.hov { outline-style: solid; background: var(--hl); }
+.ann.hov > i { display: none; }
+.ann > em { position: absolute; left: -5px; bottom: calc(100% + 6px); font: 500 10.5px/17px var(--font-mono); font-style: normal; padding: 0 6px; border-radius: 4px; background: var(--accent); color: var(--on-accent); white-space: nowrap; letter-spacing: 0; }
+
+/* loaders */
+.ld { display: inline-block; width: 16px; height: 16px; position: relative; flex: none; color: var(--accent); }
+.ld.orbit { border-radius: 50%; border: 2px solid var(--tint-strong); border-top-color: currentColor; animation: spin 0.9s linear infinite; }
+.ld.relay { display: inline-flex; gap: 2px; align-items: center; width: auto; }
+.ld.relay i { width: 3px; height: 12px; border-radius: 2px; background: currentColor; animation: relay 0.9s ease-in-out infinite; }
+.ld.relay i:nth-child(2) { animation-delay: 0.15s; } .ld.relay i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes relay { 0%, 100% { transform: scaleY(0.4); opacity: 0.5; } 50% { transform: scaleY(1); opacity: 1; } }
+.ld.dots { display: inline-flex; gap: 3px; align-items: center; width: auto; }
+.ld.dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: pulse 1s ease-in-out infinite; }
+.ld.dots i:nth-child(2) { animation-delay: 0.2s; } .ld.dots i:nth-child(3) { animation-delay: 0.4s; }
+.ld.wedge { border-radius: 50%; background: conic-gradient(currentColor 0 25%, var(--tint-strong) 0); animation: spin 1.2s steps(8) infinite; }
+.ld.review { border-radius: 50%; border: 2px solid currentColor; animation: breathe 1.6s ease-in-out infinite; color: var(--warn); }
+@keyframes breathe { 50% { transform: scale(0.7); opacity: 0.4; } }
+
+/* component library */
+.lib { display: grid; gap: 1rem; }
+.lib-block { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg); }
+.lib-block > header { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line); background: var(--tint); }
+.lib-block > header h3 { margin: 0; font-size: 0.875rem; }
+.lib-block > header span { font-size: var(--size-caption); color: var(--muted); }
+.lib-body { padding: 1rem; display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.lib-body.col { flex-direction: column; align-items: stretch; }
+.lib-body .m-app { min-height: 0; }
+.lib-item { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
+.lib-item > small { font-family: var(--font-mono); font-size: 0.6875rem; color: var(--muted); }
+.swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; width: 100%; }
+@container lib (max-width: 500px) { .swatches { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.swatch { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: var(--size-caption); }
+.swatch div { height: 38px; }
+.swatch span { display: block; padding: 0.35rem 0.5rem; color: var(--muted); }
+.swatch b { display: block; color: var(--ink); font-weight: 550; }
+.type-row { display: flex; align-items: baseline; gap: 1rem; padding: 0.4rem 0; border-top: 1px solid var(--line); width: 100%; }
+.type-row:first-child { border-top: 0; }
+.type-row small { width: 5.5rem; flex: none; color: var(--muted); font-family: var(--font-mono); font-size: 0.6875rem; }
+.m-toast { display: inline-block; background: var(--ink); color: var(--bg); font-size: 13px; padding: 7px 14px; border-radius: 999px; box-shadow: var(--shadow); }
+.m-menu { width: 230px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 5px; font-size: 13px; }
+.m-menu div { display: flex; justify-content: space-between; align-items: center; padding: 7px 9px; border-radius: 7px; color: var(--ink); }
+.m-menu div:hover { background: var(--tint); }
+.m-menu small { color: var(--muted); font-size: 11.5px; }
+.m-menu .red { color: var(--err); }
+.m-menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+.lib-sheet { width: 300px; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 22px 22px 0 0; box-shadow: var(--shadow); padding: 8px 14px 16px; }
+.lib-sheet .m-grab { display: block; margin: 0 auto 10px; }
+.lib-sheet .m-sheet-head { padding: 0 0 10px; }
+.lib-sheet .m-row:first-of-type { border-top: 0; }
+.ann > em { display: none; }
+[data-ann="none"] .ann, [data-ann="hover"] .ann.b { outline: none; }
+[data-ann="none"] .ann > i, [data-ann="hover"] .ann > i { display: none; }
+[data-ann="hover"] .ann.a { outline-style: solid; background: var(--hl); }
+[data-ann="hover"] .ann.a > em { display: block; }
+[data-ann="done"] .ann { outline-color: var(--ok); outline-style: solid; }
+[data-ann="done"] .ann > i { background: var(--ok); }
+.m-site .cta { background: var(--mock-btn); transition: background 0.4s; }
+[data-ann="done"] .m-site .cta { background: var(--mock-brand); }
+.m-site h5 { transition: letter-spacing 0.4s; }
+[data-ann="done"] .m-site h5 { letter-spacing: -0.045em; }
+[data-ann="none"] .m-composer .m-chips, [data-ann="hover"] .m-composer .m-chips, [data-ann="done"] .m-composer .m-chips { display: none; }
+
+/* ---------- component library: per-viewport stage ---------- */
+.vp-bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; padding: 0.6rem 0; margin-bottom: 1rem; background: var(--bg); border-bottom: 1px solid var(--line); }
+@media (max-width: 980px) { .vp-bar { top: calc(57px + env(safe-area-inset-top, 0px)); } }
+.vp-note { font-size: var(--size-small); color: var(--muted); }
+.lib-stage { display: flex; justify-content: center; }
+.lib { width: 100%; container-type: inline-size; container-name: lib; transition: max-width 0.25s ease; }
+.lib[data-vp="ipad"] { max-width: 820px; }
+.lib[data-vp="phone"] { max-width: 390px; padding: 14px; border-radius: 28px; box-shadow: inset 0 0 0 2px var(--bezel-edge); }
+.lib-h { font-size: var(--size-caption) !important; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted) !important; font-weight: 500 !important; margin: 1.25rem 0 0 !important; }
+.lib-h:first-child { margin-top: 0 !important; }
+.lib[data-vp="desktop"] .only-t, .lib[data-vp="desktop"] .only-p, .lib[data-vp="ipad"] .only-d, .lib[data-vp="ipad"] .only-p, .lib[data-vp="phone"] .only-d, .lib[data-vp="phone"] .only-t,
+.lib[data-vp="desktop"] .not-d, .lib[data-vp="phone"] .not-p { display: none !important; }
+.lib-body .m-app { min-height: 0; }
+.lib-item.grow { flex: 1 1 200px; }
+.lib .spec { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+.lib .spec b { color: var(--ink); font-weight: 550; }
+
+/* touch sizes on iPad + phone */
+.lib:not([data-vp="desktop"]) .m-btn { min-height: 40px; padding-inline: 14px; }
+.lib:not([data-vp="desktop"]) .m-icon { width: 40px; height: 40px; }
+.lib:not([data-vp="desktop"]) .m-icon.tt { width: 40px; height: 40px; }
+.lib .m-icon.tt { width: 28px; height: 28px; background: var(--tint-strong); color: var(--ink); }
+.lib .m-round { width: 34px; height: 34px; }
+.lib:not([data-vp="desktop"]) .m-round { width: 44px; height: 44px; }
+.lib:not([data-vp="desktop"]) .ann > i { width: 26px; height: 26px; font-size: 12px; }
+.lib:not([data-vp="desktop"]) .m-row { min-height: 44px; }
+.lib[data-vp="phone"] .lib-body { padding: 0.8rem; }
+
+/* wireframe */
+.wire { display: grid; grid-template-columns: 0.8fr 1.2fr 1.5fr; gap: 6px; height: 170px; position: relative; }
+.wire > div { border: 1.5px dashed var(--line); border-radius: 8px; background: var(--tint); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; font-size: 12px; color: var(--muted); text-align: center; padding: 4px; }
+.wire b { color: var(--ink); font-weight: 600; font-size: 12.5px; }
+.wire .w-chat { border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
+.wire .w-sheet { display: none; }
+.lib[data-vp="ipad"] .wire { grid-template-columns: 1fr 1fr; }
+.lib[data-vp="ipad"] .wire { padding-left: 30px; }
+.lib[data-vp="ipad"] .wire .w-agents { position: absolute; left: 0; top: 0; bottom: 0; width: 24px; padding: 0; border-style: solid; border-radius: 6px; }
+.lib[data-vp="ipad"] .wire .w-agents b { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 11.5px; }
+.lib[data-vp="ipad"] .wire .w-agents span { display: none; }
+.lib[data-vp="phone"] .wire { grid-template-columns: 1fr; height: 300px; }
+.lib[data-vp="phone"] .wire .w-agents { display: none; }
+.lib[data-vp="phone"] .wire .w-prev { display: none; }
+.lib[data-vp="phone"] .wire .w-sheet { display: flex; position: absolute; left: 0; right: 0; bottom: 0; height: 46%; border-radius: 16px 16px 8px 8px; background: var(--surface); border-style: solid; box-shadow: var(--shadow); }
+.page-wire { grid-template-columns: 1fr !important; height: auto !important; gap: 6px; }
+.page-wire .pw-top { height: 34px; }
+.page-wire .pw-body { height: 110px; margin: 0 14%; }
+.lib[data-vp="ipad"] .page-wire .pw-body { margin: 0 4%; }
+.lib[data-vp="phone"] .page-wire .pw-body { margin: 0 3%; height: 160px; }
+.page-wire em { font-style: normal; }
+
+/* bars */
+.tb-demo { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.lib[data-vp="ipad"] .tb-demo .m-round { display: grid !important; margin-right: 4px; }
+.phone-bar { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.pb-title { flex: 1; min-width: 0; text-align: center; display: flex; flex-direction: column; }
+.pb-title b { color: var(--ink); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-title small { color: var(--muted); font-size: 11.5px; }
+.status-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); position: relative; display: inline-block; flex: none; }
+.status-btn::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--muted); }
+.status-btn.on::after { background: var(--ok); }
+.status-btn.busy { border-color: var(--accent); border-top-color: transparent; animation: spin 1.1s linear infinite; }
+.status-btn.busy::after { background: var(--accent); }
+.status-btn.down::after { background: var(--warn); animation: pulse 1.2s infinite; }
+
+/* type */
+.t-display { font-size: 40px; font-weight: 650; letter-spacing: -0.03em; color: var(--ink); line-height: 1.1; }
+.lib[data-vp="phone"] .t-display { font-size: 31px; }
+.lib[data-vp="phone"] .type-row { flex-direction: column; gap: 0.15rem; }
+
+/* buttons + inputs */
+.m-btn.confirm { background: var(--err); color: #fff; box-shadow: none; }
+.m-btn.fab { background: var(--ink); color: var(--bg); border-radius: 999px; padding: 10px 18px; box-shadow: var(--shadow); }
+.m-input.err { border-color: var(--err); box-shadow: 0 0 0 3px var(--err-soft); color: var(--ink); }
+.m-chips-clear { font-size: 11.5px; color: var(--muted); text-decoration: underline; align-self: center; }
+.attach { display: inline-flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 12px; max-width: 220px; }
+.attach > span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; }
+.attach b { color: var(--ink); font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.attach small { color: var(--muted); font-size: 11px; }
+.attach .thumb { width: 32px; height: 32px; border-radius: 6px; background: linear-gradient(135deg, var(--accent-soft), var(--ok-soft)); flex: none; display: grid; place-items: center; font: 600 9px var(--font-mono); color: var(--muted); }
+.attach .thumb.doc { background: var(--tint-strong); }
+.attach .x { color: var(--muted); padding: 0 2px; }
+.attach.bad { border-color: color-mix(in srgb, var(--err) 50%, transparent); }
+.attach.bad small { color: var(--err); }
+.attach .prog { display: block; width: 90px; height: 4px; border-radius: 2px; background: var(--tint-strong); margin-top: 5px; overflow: hidden; }
+.attach .prog i { display: block; height: 100%; background: var(--accent); }
+.m-send.stop { background: var(--err); }
+.m-send.stop span { width: 9px; height: 9px; border-radius: 2px; background: #fff; }
+
+/* bars, cards */
+.bar-warn, .bar-info, .bar-err { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px; border-radius: 10px; font-size: 13px; }
+.bar-warn { background: var(--warn-soft); color: var(--ink); }
+.bar-warn > span:nth-child(2) { flex: 1; min-width: 0; }
+.bar-info { background: var(--tint-strong); color: var(--ink); }
+.bar-err { background: var(--err-soft); color: var(--err); border: 1px solid color-mix(in srgb, var(--err) 40%, transparent); }
+.bar-err b { color: inherit; }
+.err-card { border: 1px solid color-mix(in srgb, var(--err) 40%, transparent); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); max-width: 460px; }
+.ec-head { display: flex; align-items: center; gap: 8px; }
+.ec-head b { color: var(--ink); flex: 1; }
+.ec-head small { color: var(--muted); font-size: 11.5px; }
+.ec-icon { width: 20px; height: 20px; border-radius: 50%; background: var(--err); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+.err-card p { font-size: 13px; }
+.status-screens { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+.lib[data-vp="phone"] .status-screens { grid-template-columns: 1fr; }
+.ss { border: 1px solid var(--line); border-radius: 12px; padding: 22px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; min-height: 170px; justify-content: center; background: var(--surface); }
+.ss b { color: var(--ink); font-size: 14px; }
+.ss small { color: var(--muted); font-size: 12px; }
+
+/* annotation note */
+.note-card { width: 300px; max-width: 100%; display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+.lib[data-vp="phone"] .note-card { width: 100%; border-radius: 18px; }
+.lib[data-vp="phone"] .note-card .m-foot .m-btn { flex: 1; }
+
+/* chat */
+.chat-col { max-width: 480px; }
+.empty-chat { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; max-width: 280px; padding: 18px 0; }
+.empty-chat b { color: var(--ink); font-size: 15px; }
+.empty-chat small { color: var(--muted); font-size: 12.5px; }
+.thinking { font-size: 13px; color: var(--muted); }
+.thinking summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.thinking p { margin: 6px 0 0 !important; padding-left: 10px; border-left: 2px solid var(--line); }
+.steps { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
+.steps div { display: flex; align-items: center; gap: 8px; color: var(--muted); padding: 3px 0; }
+.steps div span { flex: 1; }
+.steps b { color: var(--ink); font-weight: 550; }
+.steps small { font-size: 11.5px; }
+.m-diff .skip { color: var(--muted); background: var(--tint); font-size: 11px; }
+.run { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.run-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; }
+.run-head code { flex: 1; background: none !important; padding: 0 !important; }
+.run pre { margin: 0; padding: 8px 10px; border-top: 1px solid var(--line); background: var(--tint); font: 11.5px/1.6 var(--font-mono); color: var(--body); white-space: pre-wrap; }
+.run.failed { border-color: color-mix(in srgb, var(--err) 40%, transparent); }
+.turn-usage { font-size: 11.5px; color: var(--muted); }
+.m-working u { text-decoration: underline; text-underline-offset: 2px; }
+.files div { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; border-top: 1px solid var(--line); font: 12px var(--font-mono); color: var(--ink); }
+.files div span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files i { font-style: normal; }
+.widget { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--ink); background: var(--surface); }
+
+/* nav parts */
+.agents-demo { width: 260px; max-width: 100%; display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--tint); position: relative; }
+.lib[data-vp="ipad"] .agents-demo { width: 300px; box-shadow: var(--shadow); background: var(--bg); }
+.lib[data-vp="phone"] .agents-demo { width: 100%; min-height: 330px; background: var(--bg); padding-bottom: 70px; }
+.agents-demo h4 { margin: 6px 4px 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+.agents-demo .fab { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); }
+.agents-demo i { font-style: normal; }
+.kbd { margin-left: auto; font: 10.5px var(--font-mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--muted); }
+.m-menu .count { min-width: 18px; height: 18px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-size: 11px; font-weight: 650; display: grid; place-items: center; padding: 0 5px; }
+.lib[data-vp="phone"] .m-menu { width: 100%; border-radius: 22px 22px 0 0; padding: 6px 10px 16px; }
+.lib[data-vp="phone"] .m-menu > div { min-height: 44px; }
+
+/* sheets / popovers */
+.sheetish { border-radius: 14px; padding: 10px 14px 14px; }
+.lib[data-vp="phone"] .sheetish { width: 100%; border-radius: 22px 22px 0 0; }
+.sheetish .m-grab { margin: 0 auto 8px; }
+.num { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 550; }
+.fill { height: 6px; border-radius: 999px; background: var(--tint-strong); overflow: hidden; display: block; }
+.fill i { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.dlg { width: 380px; max-width: 100%; }
+.dlg p { font-size: 13.5px; }
+.lib[data-vp="phone"] .dlg { width: 100%; border-radius: 22px 22px 0 0; }
+.lib[data-vp="phone"] .dlg .m-foot .m-btn { flex: 1; }
+
+/* cards */
+.lib[data-vp="phone"] .m-wcard { flex-direction: column; align-items: stretch; gap: 12px; }
+.lib[data-vp="phone"] .m-wcard .m-actions { display: grid; grid-template-columns: 1fr 1fr 1fr auto; }
+.lib[data-vp="phone"] .m-row .m-actions .m-btn { padding-inline: 10px; }
+.empty-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px; border: 1.5px dashed var(--line); border-radius: 12px; }
+.empty-row b { color: var(--ink); }
+.empty-row small { color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+
+
+<div class="mobile-bar">
+  <a class="wordmark" href="#overview" aria-label="Shram home"><b>shram</b><span>श्रम</span></a>
+  <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileSheet">Menu</button>
+</div>
+<nav class="mobile-sheet" id="mobileSheet" aria-label="Documentation"><div class="nav-links" data-nav></div><div class="dev-switch" style="margin-top:1rem"><span>Developer mode</span><button class="switch js-dev-switch" role="switch" aria-checked="false" aria-label="Developer mode"></button></div></nav>
+
+<nav class="side-nav" aria-label="Documentation">
+  <a class="wordmark" href="#overview" aria-label="Shram home"><b>shram</b><span>श्रम</span></a>
+  <div class="nav-scroll">
+    <div class="nav-links" data-nav></div>
+    <div style="display:flex;flex-direction:column;gap:.75rem"><div class="dev-switch"><span>Developer mode</span><button class="switch js-dev-switch" role="switch" aria-checked="false" aria-label="Developer mode"></button></div><div class="nav-meta">
+      <a href="https://github.com/cRAN-cg" target="_blank" rel="noopener noreferrer">GitHub</a><span>·</span>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle light and dark theme" title="Toggle theme" style="width:1.5rem;height:1.5rem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4.25"/><path d="M12 3.5v1.5M12 19v1.5M3.5 12H5M19 12h1.5M6 6l1 1M17 17l1 1M6 18l1-1M17 7l1-1"/></svg>
+      </button>
+    </div></div>
+  </div>
+</nav>
+
+<main class="main" id="main">
+
+<!-- ======================= OVERVIEW ======================= -->
+<article class="page" data-page="overview">
+  <div class="stats">
+    <span class="stat"><b>6</b> screens · <b>3</b> devices · <b>1</b> design system</span>
+    <span class="cmd" data-dev><code>./scripts/setup.sh &amp;&amp; ./scripts/dev.sh</code><button class="icon-btn" data-copy="./scripts/setup.sh &amp;&amp; ./scripts/dev.sh" aria-label="Copy setup command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8.75" y="8.75" width="10.5" height="10.5" rx="1.75"/><path d="M15.25 8.75V6.5c0-.97-.78-1.75-1.75-1.75h-7c-.97 0-1.75.78-1.75 1.75v7c0 .97.78 1.75 1.75 1.75h2.25"/></svg></button></span>
+  </div>
+  <header>
+    <h1>Point at the page. The agent sees what you see.</h1>
+    <p class="lede">Shram turns a GitHub repo into a running workspace in the browser: your app's live preview next to an AI agent in a chat. Click anything in the preview, say what should change, and watch the agent change it.</p>
+  </header>
+
+  <div class="hero-demo" id="heroDemo" aria-label="Animated demo: annotating a preview and the agent fixing it">
+    <div class="hd-stage" id="hdStage">
+      <div class="hd-chrome"><div class="hd-dots"><i></i><i></i><i></i></div><div class="hd-url">shram · tally-web · preview</div></div>
+      <div class="hd-body">
+        <div class="hd-prev" id="hdPrev">
+          <div class="hd-mnav"><b>Tally</b><span><i>Pricing</i><i>Docs</i><i>Sign in</i></span></div>
+          <div class="hd-eyebrow">Invoices, sorted</div>
+          <h4 class="hd-head" id="hdHead">Get paid before the coffee cools.</h4>
+          <p class="hd-sub">Send an invoice in under a minute. Tally chases late payers so you don't have to.</p>
+          <span class="hd-cta" id="hdCta">Start free trial</span>
+          <div class="hd-cards"><div><b>₹4.2L</b>collected</div><div><b>3.1 days</b>to paid</div><div><b>98%</b>on time</div></div>
+        </div>
+        <div class="hd-chat">
+          <div class="hd-chat-head">Agent <span class="hd-toggle" id="hdToggle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12l4 4 10-10"/></svg>Annotate</span></div>
+          <div class="hd-msgs" id="hdMsgs"></div>
+          <div class="hd-input" id="hdInput"><span id="hdText"></span><span class="hd-send" id="hdSend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></div>
+        </div>
+      </div>
+      <div class="hd-hover" id="hdHover"><em></em></div>
+      <div id="hdLayer"></div>
+      <div class="hd-cursor" id="hdCursor"><svg viewBox="0 0 24 24"><path d="M5 3l14 8.2-6.2 1.3L10 19z" fill="#111" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+    </div>
+  </div>
+
+  <section>
+    <h2>How you use it</h2>
+    <ol>
+      <li>Open a workspace from any GitHub repo. The chat and the live preview come up side by side.</li>
+      <li>Turn on <strong>Annotate</strong>.</li>
+      <li><strong>Hover</strong> over the preview to see each element outlined with its name.</li>
+      <li><strong>Click</strong> an element and add a note. A numbered badge marks the order.</li>
+      <li>Press <strong>Send</strong> and watch the preview reload as the agent edits.</li>
+      <li>Badges turn <strong style="color:var(--ok)">green</strong> when the agent has changed what you pointed at.</li>
+    </ol>
+    <div class="callout"><p>This page has the same tool built in. Click the <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 12H5.5M18.5 6.75h-13M9.25 17.25H5.5"/><path d="M16 12.75l.52 1.22c.29.68.83 1.22 1.51 1.51l1.22.52-1.22.52c-.68.29-1.22.83-1.51 1.51L16 19.25l-.52-1.22a2.86 2.86 0 00-1.51-1.51L12.75 16l1.22-.52c.68-.29 1.22-.83 1.51-1.51z"/></svg> button in the bottom-right corner and annotate anything, including the screens inside the device frames.</p></div>
+  </section>
+
+  <section>
+    <h2>Every screen, every size</h2>
+    <p>Each screen below is built in HTML, not pasted as an image. Switch devices, open dialogs and scroll inside the frames.</p>
+    <div class="doc-links">
+      <a href="#onboarding">Onboarding</a>
+      <a href="#signin">Sign in and access</a>
+      <a href="#dashboard">Workspaces dashboard</a>
+      <a href="#workspace">Workspace: chat, agents and preview</a>
+      <a href="#ipad">On iPad</a>
+      <a href="#phone">On phones</a>
+      <a href="#components">Component library</a>
+    </div>
+  </section>
+
+  <section id="try">
+    <h2>Try it</h2>
+    <p>Turn on the toolbar and annotate the elements below. The output updates live underneath.</p>
+    <div class="demo-elements">
+      <div class="button-group">
+        <button class="demo-button" data-flash="Primary clicked">Primary</button>
+        <button class="demo-button secondary" data-flash="Secondary clicked">Secondary</button>
+        <button class="demo-button brand" id="openModal">Modal</button>
+      </div>
+      <input id="demoInput" class="demo-input" type="text" placeholder="Type here, then annotate the field">
+      <div class="demo-card">
+        <h3>Example card</h3>
+        <p>Click this card or its heading to annotate it. The output gives the element's path, its text and your note.</p>
+      </div>
+      <div class="live-output-wrap">
+        <div class="live-output-head"><span>Output</span><button class="icon-btn" id="copyLive" aria-label="Copy output"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8.75" y="8.75" width="10.5" height="10.5" rx="1.75"/><path d="M15.25 8.75V6.5c0-.97-.78-1.75-1.75-1.75h-7c-.97 0-1.75.78-1.75 1.75v7c0 .97.78 1.75 1.75 1.75h2.25"/></svg></button></div>
+        <pre class="code" id="live-output">No annotations yet. Turn on the toolbar and click something.</pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Animation pause demo</h2>
+    <p>Turn on the toolbar and click <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 6.5v11M15 17.5v-11"/></svg> to freeze these animations and the demo above, so you can annotate one frame.</p>
+    <div class="animation-demo">
+      <div class="progress-track"><div class="progress-bar"></div></div>
+      <div class="spinner-row"><span class="spinner"></span>Installing dependencies…</div>
+    </div>
+  </section>
+
+  <section data-dev>
+    <h2>How agents use it</h2>
+    <p>Each selection reaches the agent as structured context plus pixels:</p>
+    <ul>
+      <li><strong>CSS selector</strong> to find the element in the source</li>
+      <li><strong>Text snippet</strong> to tell apart elements that share a selector</li>
+      <li><strong>Bounds</strong> in page coordinates</li>
+      <li><strong>A screenshot crop</strong> of each element, plus a viewport shot with the numbered badges</li>
+      <li><strong>Click order</strong>, when the order matters</li>
+      <li><strong>Your note</strong>, word for word</li>
+    </ul>
+  </section>
+
+  <section data-dev>
+    <h2>Agents talk back</h2>
+    <ul>
+      <li><strong>Steer mid-turn</strong>: a message sent while the agent works joins the running turn</li>
+      <li><strong>Ask before it runs</strong>: every shell command waits for your approval</li>
+      <li><strong>Show the cost</strong>: tokens and a list-price estimate per call, or no number when the price is unknown</li>
+      <li><strong>Report edits</strong>: touched files stream back as diffs while the preview reloads</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Best practices</h2>
+    <ul>
+      <li><strong>Be specific</strong>: “CTA text is unclear” is better than “fix this”</li>
+      <li><strong>One change per selection</strong>: the agent can address and confirm each one</li>
+      <li><strong>Use ordered mode for flows</strong>: click 1 → 2 → 3 to describe a sequence</li>
+      <li><strong>Annotate the state you're in</strong>: open the menu or dialog first, then point at it</li>
+      <li><strong>Pause animations</strong> to point at a single frame</li>
+    </ul>
+  </section>
+</article>
+
+<!-- ======================= ONBOARDING ======================= -->
+<article class="page wide" data-page="onboarding" hidden>
+  <header><h1>Onboarding</h1><p class="lede">The first page a visitor sees. It explains the product in one sentence, shows the four steps to a running workspace, and asks for one thing: sign in with GitHub.</p></header>
+  <section>
+    <div class="controls"><label>Device</label><div class="seg" data-for="hOnb" data-kind="device"><button data-val="desktop">Desktop</button><button data-val="ipad">iPad</button><button data-val="phone">Phone</button></div></div>
+    <div class="device-host" id="hOnb" data-tpl="tpl-landing" data-device="desktop"></div>
+  </section>
+  <section>
+    <h2>What changes by size</h2>
+    <ul><li>The headline keeps a 16-character measure on every screen, so it breaks into short, even lines.</li><li>On phones the nav keeps only Sign in, and the main button spans the full width.</li><li>The project file moves under its explanation instead of beside it.</li></ul>
+  </section>
+</article>
+
+<!-- ======================= SIGN IN ======================= -->
+<article class="page wide" data-page="signin" hidden>
+  <header><h1>Sign in and access</h1><p class="lede">Shram instances are invite-only. Signing in, being turned away, waiting for approval and approving others each get their own screen, so nobody lands on a blank page.</p></header>
+  <section>
+    <div class="controls">
+      <label>Device</label><div class="seg" data-for="hAuth" data-kind="device"><button data-val="desktop">Desktop</button><button data-val="ipad">iPad</button><button data-val="phone">Phone</button></div>
+      <label>State</label><div class="seg" data-for="hAuth" data-kind="attr" data-attr="data-state"><button data-val="out">Sign in</button><button data-val="denied">Not invited</button><button data-val="waiting">Waiting</button><button data-val="admin">Admin</button></div>
+    </div>
+    <div class="device-host" id="hAuth" data-tpl="tpl-auth" data-device="desktop"></div>
+  </section>
+  <section>
+    <h2>The four states</h2>
+    <div class="table-wrap"><table><thead><tr><th>State</th><th>Who sees it</th><th>What they can do</th></tr></thead><tbody>
+      <tr><td><strong>Sign in</strong></td><td>Anyone signed out</td><td>Continue with GitHub</td></tr>
+      <tr><td><strong>Not invited</strong></td><td>An account the instance turned away</td><td>Read why, try another account</td></tr>
+      <tr><td><strong>Waiting</strong></td><td>A new account before approval</td><td>Wait; the page updates by itself</td></tr>
+      <tr><td><strong>Admin</strong></td><td>The instance owner</td><td>Approve or deny people waiting</td></tr>
+    </tbody></table></div>
+  </section>
+</article>
+
+<!-- ======================= DASHBOARD ======================= -->
+<article class="page wide" data-page="dashboard" hidden>
+  <header><h1>Workspaces dashboard</h1><p class="lede">Every workspace you own, with its state shown as a colored dot and the one action that makes sense for that state first.</p></header>
+  <section>
+    <div class="controls">
+      <label>Device</label><div class="seg" data-for="hDash" data-kind="device"><button data-val="desktop">Desktop</button><button data-val="ipad">iPad</button><button data-val="phone">Phone</button></div>
+      <label>View</label><div class="seg" data-for="hDash" data-kind="attr" data-attr="data-modal"><button data-val="off">List</button><button data-val="on">New workspace</button></div>
+    </div>
+    <div class="device-host" id="hDash" data-tpl="tpl-dash" data-device="desktop"></div>
+  </section>
+  <section>
+    <h2>States</h2>
+    <div class="table-wrap"><table><thead><tr><th>Dot</th><th>State</th><th>First action</th></tr></thead><tbody>
+      <tr><td><span class="m-dot ok"></span></td><td>Running</td><td>Open</td></tr>
+      <tr><td><span class="m-dot warn pulse"></span></td><td>Starting</td><td>Wait (button shows progress)</td></tr>
+      <tr><td><span class="m-dot"></span></td><td>Stopped</td><td>Restart</td></tr>
+      <tr><td><span class="m-dot warn"></span></td><td>Running on an old runtime</td><td>Recreate</td></tr>
+      <tr><td><span class="m-dot err"></span></td><td>Failed to start</td><td>Restart, with the reason in the row</td></tr>
+    </tbody></table></div>
+    <p>On phones each card stacks and its buttons share one row, and the New workspace dialog becomes a bottom sheet you can reach with a thumb.</p>
+  </section>
+</article>
+
+<!-- ======================= WORKSPACE ======================= -->
+<article class="page wide" data-page="workspace" hidden>
+  <header><h1>Workspace</h1><p class="lede">Where the work happens: agents on the left, the chat in the middle, your app's live preview on the right. The layout keeps what fits and moves the rest one tap away.</p></header>
+  <section>
+    <div class="controls">
+      <label>Device</label><div class="seg" data-for="hWs" data-kind="device"><button data-val="desktop">Desktop</button><button data-val="ipadl">iPad landscape</button><button data-val="ipad">iPad</button><button data-val="phone">Phone</button></div>
+    </div>
+    <div class="controls">
+      <label>Annotation</label><div class="seg" data-for="hWs" data-kind="attr" data-attr="data-ann"><button data-val="none">Off</button><button data-val="hover">Hover</button><button data-val="sel">Selected</button><button data-val="done">Resolved</button></div>
+      <label>Open</label><div class="seg" data-for="hWs" data-kind="overlay"><button data-val="none">Nothing</button><button data-val="drawer">Agents</button><button data-val="sheet">Preview sheet</button><button data-val="note">Note</button></div>
+    </div>
+    <div class="device-host" id="hWs" data-tpl="tpl-ws" data-device="desktop"></div>
+  </section>
+  <section>
+    <h2>Three layouts, one workspace</h2>
+    <div class="table-wrap"><table><thead><tr><th>Width</th><th>Layout</th></tr></thead><tbody>
+      <tr><td>Over 1100px</td><td>Agents, chat and preview side by side</td></tr>
+      <tr><td>600–1100px</td><td>Chat and preview; agents slide in from the left</td></tr>
+      <tr><td>Under 600px</td><td>Chat full screen; agents as a full-screen drawer, preview as a bottom sheet</td></tr>
+    </tbody></table></div>
+    <p>The chat shows each edit as a diff, asks before running commands, and keeps the elements you marked as chips above the message box until you send.</p>
+  </section>
+</article>
+
+<!-- ======================= IPAD ======================= -->
+<article class="page wide" data-page="ipad" hidden>
+  <header><h1>On iPad</h1><p class="lede">A tablet is wide enough to see your app and talk to the agent at the same time, so it gets two panes, in portrait too, with agents one swipe away.</p></header>
+  <section>
+    <div class="screen-grid">
+      <figure class="ipad" style="flex-basis:100%"><div class="device-host" data-tpl="tpl-ws" data-device="ipadl"></div><figcaption><b>Landscape.</b> All three panes, like a laptop.</figcaption></figure>
+      <figure class="ipad"><div class="device-host" data-tpl="tpl-ws" data-device="ipad"></div><figcaption><b>Portrait.</b> Chat and preview side by side.</figcaption></figure>
+      <figure class="ipad"><div class="device-host" data-tpl="tpl-ws" data-device="ipad" data-attrs='{"data-drawer":"on","data-ann":"done"}'></div><figcaption><b>Agents drawer.</b> Switch chats without leaving the preview.</figcaption></figure>
+      <figure class="ipad"><div class="device-host" data-tpl="tpl-dash" data-device="ipad"></div><figcaption><b>Dashboard.</b> Full rows with every action visible.</figcaption></figure>
+      <figure class="ipad"><div class="device-host" data-tpl="tpl-auth" data-device="ipad" data-attrs='{"data-state":"admin"}'></div><figcaption><b>Access.</b> Approve people from the couch.</figcaption></figure>
+    </div>
+  </section>
+</article>
+
+<!-- ======================= PHONE ======================= -->
+<article class="page wide" data-page="phone" hidden>
+  <header><h1>On phones</h1><p class="lede">The chat is the home screen. Agents open as a full-screen list, the preview rises as a sheet, and annotating works by tapping.</p></header>
+  <section>
+    <div class="screen-grid">
+      <figure><div class="device-host" data-tpl="tpl-landing" data-device="phone"></div><figcaption><b>Onboarding.</b> One button, full width.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-auth" data-device="phone" data-attrs='{"data-state":"waiting"}'></div><figcaption><b>Waiting.</b> Clear about what happens next.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-dash" data-device="phone"></div><figcaption><b>Dashboard.</b> Cards stack, actions share a row.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-dash" data-device="phone" data-attrs='{"data-modal":"on"}'></div><figcaption><b>New workspace.</b> A bottom sheet within thumb reach.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone"></div><figcaption><b>Chat.</b> The home of a workspace.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-drawer":"on"}'></div><figcaption><b>Agents.</b> Every chat in this workspace.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-sheet":"on"}'></div><figcaption><b>Preview sheet.</b> Tap to mark elements.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-sheet":"on","data-note":"on","data-ann":"hover"}'></div><figcaption><b>Note.</b> Say what should change, right there.</figcaption></figure>
+    </div>
+  </section>
+</article>
+
+<!-- ======================= ANNOTATION ======================= -->
+<article class="page wide" data-page="annotation" hidden>
+  <header><h1>Annotation</h1><p class="lede">The fastest way to tell an agent what to change is to point at it. Every step below has its own visible state, on desktop and on touch.</p></header>
+  <section>
+    <h2>The flow</h2>
+    <ol>
+      <li><strong>Turn on Annotate</strong> from the preview toolbar. The preview gets a soft outline so you know clicks won't reach your app.</li>
+      <li><strong>Hover</strong> to see the element's name above it, like <code>a.cta</code>. On touch, tap instead.</li>
+      <li><strong>Click</strong> to mark it. A badge shows its number in ordered mode, or a dot in unordered mode.</li>
+      <li><strong>Add a note</strong> in the card that opens next to the element. Each element keeps its own note.</li>
+      <li><strong>Send.</strong> Marked elements ride along as chips; the agent gets their names, text, position and a screenshot.</li>
+      <li><strong>Resolved.</strong> When the agent's edit changes a marked element, its badge turns green.</li>
+    </ol>
+  </section>
+  <section>
+    <div class="controls"><label>State</label><div class="seg" data-for="hAnn" data-kind="attr" data-attr="data-ann"><button data-val="none">Off</button><button data-val="hover">Hover</button><button data-val="sel">Selected</button><button data-val="done">Resolved</button></div></div>
+    <div class="device-host" id="hAnn" data-tpl="tpl-ws" data-device="desktop" data-attrs='{"data-ann":"hover"}'></div>
+  </section>
+  <section>
+    <h2>On touch</h2>
+    <div class="screen-grid">
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-sheet":"on","data-ann":"none"}'></div><figcaption><b>1.</b> Open the preview, turn on Annotate.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-sheet":"on","data-note":"on","data-ann":"hover"}'></div><figcaption><b>2.</b> Tap an element, write a note.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-sheet":"on","data-ann":"sel"}'></div><figcaption><b>3.</b> Marks stay numbered.</figcaption></figure>
+      <figure><div class="device-host" data-tpl="tpl-ws" data-device="phone" data-attrs='{"data-sheet":"on","data-ann":"done"}'></div><figcaption><b>4.</b> Green when the agent is done.</figcaption></figure>
+    </div>
+  </section>
+  <section>
+    <h2>Modes</h2>
+    <div class="table-wrap"><table><thead><tr><th>Mode</th><th>Badge</th><th>Use it for</th></tr></thead><tbody>
+      <tr><td><strong>Ordered</strong></td><td>1, 2, 3</td><td>Flows: “click 1, then 2 should open 3”</td></tr>
+      <tr><td><strong>Unordered</strong></td><td>dot</td><td>Independent fixes</td></tr>
+    </tbody></table></div>
+  </section>
+</article>
+
+<!-- ======================= COMPONENTS ======================= -->
+<article class="page wide" data-page="components" hidden>
+  <header><h1>Component library</h1><p class="lede">The layouts and parts every Shram screen is built from, for each viewport. Switch the viewport to see what changes: sizes for touch, popovers that become sheets, panes that become drawers.</p></header>
+
+  <div class="vp-bar">
+    <div class="controls" style="margin:0"><label>Viewport</label><div class="seg" id="vpSeg"><button data-val="desktop" aria-pressed="true">Desktop</button><button data-val="ipad" aria-pressed="false">iPad</button><button data-val="phone" aria-pressed="false">Phone</button></div></div>
+    <span class="vp-note" id="vpNote">Pointer · 28px icon buttons · popovers</span>
+  </div>
+
+  <div class="lib-stage"><div class="lib m-app" id="lib" data-vp="desktop">
+
+    <h2 class="lib-h">Layout</h2>
+
+    <div class="lib-block"><header><h3>Workspace layout</h3><span class="only-d">Three panes, resizable</span><span class="only-t">Two panes, agents in a drawer</span><span class="only-p">One screen, drawer and sheet</span></header><div class="lib-body col">
+      <div class="wire">
+        <div class="w-agents"><b>Agents</b><span class="only-d">230px · drag 220–420</span><span class="only-t">drawer · 300px</span></div>
+        <div class="w-chat"><b>Chat</b><span class="only-d">min 360px</span><span class="only-t">1fr</span><span class="only-p">full screen</span></div>
+        <div class="w-prev"><b>Preview</b><span class="only-d">1.3fr</span><span class="only-t">1fr</span></div>
+        <div class="w-sheet"><b>Preview sheet</b><span>84% height</span></div>
+      </div>
+      <div class="table-wrap" style="margin:0"><table><tbody>
+        <tr><td>Breakpoint</td><td class="only-d">Over 1100px</td><td class="only-t">600–1100px</td><td class="only-p">Under 600px</td></tr>
+        <tr><td>Page gutter</td><td class="only-d">32px</td><td class="only-t">24px</td><td class="only-p">12px cards · 16px text</td></tr>
+        <tr><td>Top bar</td><td class="only-d">48px toolbar per pane</td><td class="only-t">48px, round agents button</td><td class="only-p">60px + safe area, 44px buttons</td></tr>
+        <tr><td>Agents</td><td class="only-d">Rail, always visible</td><td class="only-t">Closed by default; slides over the chat from the left (300px) from the round button</td><td class="only-p">Full-screen list</td></tr>
+        <tr><td>Preview</td><td class="only-d">Pane</td><td class="only-t">Pane</td><td class="only-p">Bottom sheet</td></tr>
+        <tr><td>Resize</td><td class="only-d">Drag the grip between panes</td><td class="only-t">Drag the grip</td><td class="only-p">Drag the sheet's grab handle</td></tr>
+      </tbody></table></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Page frame</h3><span>Dashboard, onboarding, sign in</span></header><div class="lib-body col">
+      <div class="wire page-wire"><div class="pw-top">Top bar</div><div class="pw-body"><span>Content column</span><em class="only-d">max 880–1200px</em><em class="only-t">full width − 48px</em><em class="only-p">full width − 24px</em></div></div>
+      <p class="spec">Dialogs: <b class="only-d">centered, 500px</b><b class="only-t">centered, 500px</b><b class="only-p">bottom sheet with grab handle</b> · Menus: <b class="not-p">popover anchored to its button</b><b class="only-p">bottom sheet</b> · Safe areas: <b>padded on notched screens</b></p>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Top bars</h3><span class="only-d">Pane toolbar</span><span class="only-t">Pane toolbar + agents button</span><span class="only-p">Phone top bar</span></header><div class="lib-body col">
+      <div class="m-pbar tb-demo not-p"><span class="m-round" style="display:none"><svg><use href="#i-side"/></svg></span><span class="m-icon"><svg><use href="#i-share"/></svg></span><span class="m-icon"><svg><use href="#i-refresh"/></svg></span><span class="m-icon"><svg><use href="#i-code"/></svg></span><span class="m-icon on"><svg><use href="#i-pin"/></svg></span><span class="m-icon"><svg><use href="#i-order"/></svg></span><span class="m-url">tally-web · /</span><span class="status-btn on"></span><span class="m-icon"><svg><use href="#i-dots"/></svg></span><span class="m-icon stop"><svg><use href="#i-stop"/></svg></span></div>
+      <div class="phone-bar only-p"><span class="m-round" style="display:grid"><svg><use href="#i-side"/></svg><span class="m-dot ok"></span></span><div class="pb-title"><b>Tighten hero and CTA</b><small>tally-web · feature/invoices</small></div><span class="m-pill" style="display:flex"><span class="m-icon"><svg><use href="#i-eye"/></svg></span><span class="m-icon"><svg><use href="#i-dots"/></svg></span></span></div>
+    </div></div>
+
+    <h2 class="lib-h">Foundations</h2>
+
+    <div class="lib-block"><header><h3>Color</h3><span>Tokens, both themes</span></header><div class="lib-body"><div class="swatches">
+      <div class="swatch"><div style="background:var(--bg)"></div><span><b>Background</b>--bg</span></div>
+      <div class="swatch"><div style="background:var(--surface)"></div><span><b>Surface</b>--surface</span></div>
+      <div class="swatch"><div style="background:var(--ink)"></div><span><b>Ink</b>--ink</span></div>
+      <div class="swatch"><div style="background:var(--muted)"></div><span><b>Muted</b>--muted</span></div>
+      <div class="swatch"><div style="background:var(--accent)"></div><span><b>Accent</b>--accent</span></div>
+      <div class="swatch"><div style="background:var(--ok)"></div><span><b>Done</b>--ok</span></div>
+      <div class="swatch"><div style="background:var(--warn)"></div><span><b>Attention</b>--warn</span></div>
+      <div class="swatch"><div style="background:var(--err)"></div><span><b>Failed</b>--err</span></div>
+    </div></div></div>
+
+    <div class="lib-block"><header><h3>Type</h3><span class="not-p">One sans, one mono, one Devanagari</span><span class="only-p">Display steps down to 31px</span></header><div class="lib-body col">
+      <div class="type-row"><small>Display</small><span class="t-display">Get paid faster</span></div>
+      <div class="type-row"><small>Title 20</small><span style="font-size:20px;font-weight:600;color:var(--ink)">Sign in to Shram</span></div>
+      <div class="type-row"><small>Body 14</small><span>Send an invoice in under a minute.</span></div>
+      <div class="type-row"><small>Caption 12</small><span style="font-size:12px;color:var(--muted)">Running · feature/invoices</span></div>
+      <div class="type-row"><small>Mono 12</small><span class="m-mono">src/components/Hero.tsx</span></div>
+      <div class="type-row"><small>Mark</small><span style="font-family:var(--font-deva);font-size:22px;color:var(--ink)">श्रम</span><span style="color:var(--muted);font-size:12px">shram, “work”</span></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Touch targets</h3><span class="only-d">Pointer sizes</span><span class="not-d">Touch sizes</span></header><div class="lib-body" style="gap:1.5rem">
+      <div class="lib-item"><span class="m-icon tt"><svg><use href="#i-refresh"/></svg></span><small class="only-d">icon 28px</small><small class="not-d">icon 40px</small></div>
+      <div class="lib-item"><span class="m-btn">Restart</span><small class="only-d">button 32px</small><small class="not-d">button 40px</small></div>
+      <div class="lib-item"><span class="m-round" style="display:grid"><svg><use href="#i-side"/></svg></span><small class="only-d">round 34px</small><small class="not-d">round 44px</small></div>
+      <div class="lib-item"><span class="ann a" style="outline:none"><i style="position:static;display:grid">1</i></span><small class="only-d">badge 20px</small><small class="not-d">badge 26px</small></div>
+    </div></div>
+
+    <h2 class="lib-h">Actions and inputs</h2>
+
+    <div class="lib-block"><header><h3>Buttons</h3><span>One primary per view</span></header><div class="lib-body">
+      <div class="lib-item"><span class="m-btn primary">Open</span><small>primary</small></div>
+      <div class="lib-item"><span class="m-btn accent">Add note</span><small>accent</small></div>
+      <div class="lib-item"><span class="m-btn">Restart</span><small>secondary</small></div>
+      <div class="lib-item"><span class="m-btn danger">Stop</span><small>danger</small></div>
+      <div class="lib-item"><span class="m-btn ghost">Cancel</span><small>ghost</small></div>
+      <div class="lib-item"><span class="m-btn primary busy"><span class="ld relay" style="color:currentColor"><i></i><i></i><i></i></span>Starting…</span><small>busy</small></div>
+      <div class="lib-item"><span class="m-btn danger confirm">Click again to stop</span><small>confirm step</small></div>
+      <div class="lib-item"><span class="m-btn primary"><svg><use href="#i-github"/></svg>Continue with GitHub</span><small>with icon</small></div>
+      <div class="lib-item only-p"><span class="m-btn fab"><svg><use href="#i-plus"/></svg>New agent</span><small>floating pill</small></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Inputs</h3><span>Rest, focus, error</span></header><div class="lib-body">
+      <div class="lib-item grow"><div class="m-input" style="width:100%">https://github.com/owner/repo</div><small>text</small></div>
+      <div class="lib-item grow"><div class="m-input focus" style="width:100%"><svg width="14" height="14"><use href="#i-search"/></svg>tally</div><small>search, focused</small></div>
+      <div class="lib-item grow"><div class="m-input err" style="width:100%">github.com/owner</div><small>error: “Paste a full repo URL, like github.com/owner/repo”</small></div>
+      <div class="lib-item"><span class="seg"><button aria-pressed="true">Ordered</button><button aria-pressed="false">Unordered</button></span><small>segmented</small></div>
+      <div class="lib-item"><button class="switch" role="switch" aria-checked="true" aria-label="Example switch" tabindex="-1"></button><small>switch</small></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Composer</h3><span class="not-p">Grows to 8 lines</span><span class="only-p">Docked above the keyboard</span></header><div class="lib-body col">
+      <div class="m-composer" style="margin:0">
+        <div class="m-chips"><span class="m-chip"><i>1</i>a.cta<em>1×</em></span><span class="m-chip"><i>2</i>h1</span><span class="m-chips-clear">clear</span></div>
+        <div class="m-chips"><span class="attach"><span class="thumb"></span><span><b>hero-mock.png</b><small>184 KB</small></span><span class="x">×</span></span><span class="attach up"><span class="thumb doc">PDF</span><span><b>brand-guide.pdf</b><small class="prog"><i style="width:62%"></i></small></span><span class="x">×</span></span><span class="attach bad"><span class="thumb doc">MOV</span><span><b>demo.mov</b><small>Too large · 50 MB max</small></span><span class="x">×</span></span></div>
+        <div class="m-placeholder">Ask for a change, or mark the preview…</div>
+        <div class="m-composer-row"><span style="display:flex;align-items:center;gap:6px"><span class="m-icon" style="width:26px;height:26px"><svg><use href="#i-plus"/></svg></span><span class="m-model">Fast model ▾</span></span><span style="display:flex;gap:6px;align-items:center"><span>~$0.04</span><span class="m-send"><svg><use href="#i-up"/></svg></span></span></div>
+      </div>
+      <div class="m-composer" style="margin:0"><div class="m-placeholder" style="color:var(--ink)">Also make the button wider|</div><div class="m-composer-row"><span>Sends into the running turn</span><span class="m-send stop"><span></span></span></div></div>
+    </div></div>
+
+    <h2 class="lib-h">Status and feedback</h2>
+
+    <div class="lib-block"><header><h3>Status</h3><span>Shape and color, never color alone</span></header><div class="lib-body">
+      <div class="lib-item"><span class="m-wmeta"><span class="m-dot ok"></span>Running</span><small>ok</small></div>
+      <div class="lib-item"><span class="m-wmeta"><span class="m-dot warn pulse"></span>Starting</span><small>warn + pulse</small></div>
+      <div class="lib-item"><span class="m-wmeta"><span class="m-dot"></span>Stopped</span><small>off</small></div>
+      <div class="lib-item"><span class="m-wmeta"><span class="m-dot err"></span>Failed</span><small>err</small></div>
+      <div class="lib-item"><span class="m-tag warn">Old runtime</span><small>tag</small></div>
+      <div class="lib-item"><span class="m-tag ok">Admin</span><small>tag</small></div>
+      <div class="lib-item"><span style="display:flex;gap:8px"><span class="status-btn on" title="Agent connected"></span><span class="status-btn busy" title="Agent working"></span><span class="status-btn down" title="Reconnecting"></span><span class="status-btn" title="Offline"></span></span><small>agent status: idle · working · reconnecting · off</small></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Banners and bars</h3><span>Above the chat or the page</span></header><div class="lib-body col">
+      <div class="bar-warn"><span class="m-dot warn pulse"></span><span><b>Reconnecting to the agent</b> · attempt 2, next try in 4s</span><span class="m-btn ghost">Retry now</span></div>
+      <div class="bar-info"><span>Restore the chat from your last visit?</span><span style="display:flex;gap:6px"><span class="m-btn primary">Restore</span><span class="m-btn ghost">Start fresh</span></span></div>
+      <div class="bar-err"><span><b>Couldn't load workspaces.</b> The server didn't answer in 10s.</span><span class="x">×</span></div>
+      <div class="bar-info"><span>This workspace runs an old runtime. Recreate it to get the latest agent.</span><span class="m-btn primary">Recreate</span></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Error card</h3><span>In the chat, when a turn fails</span></header><div class="lib-body col">
+      <div class="err-card"><div class="ec-head"><span class="ec-icon">!</span><b>The model is rate-limited</b><small>2 min ago</small></div><p>The provider asked us to slow down. Your message is saved.</p><div class="m-foot" style="justify-content:flex-start"><span class="m-btn primary">Try again</span><span class="m-btn ghost">Show details</span></div></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Loaders</h3><span>One per job</span></header><div class="lib-body" style="gap:1.75rem">
+      <div class="lib-item"><span class="ld orbit"></span><small>orbit · running</small></div>
+      <div class="lib-item"><span class="ld relay"><i></i><i></i><i></i></span><small>relay · buttons</small></div>
+      <div class="lib-item"><span class="ld dots"><i></i><i></i><i></i></span><small>dots · lists</small></div>
+      <div class="lib-item"><span class="ld wedge"></span><small>wedge · thinking</small></div>
+      <div class="lib-item"><span class="ld review"></span><small>review · waiting</small></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Workspace status screens</h3><span>Full screen, before the workspace opens</span></header><div class="lib-body status-screens">
+      <div class="ss"><span class="ld orbit" style="width:22px;height:22px"></span><b>Starting your workspace</b><small>Cloning tally-web · installing dependencies</small></div>
+      <div class="ss"><span class="m-dot" style="width:12px;height:12px"></span><b>This workspace is stopped</b><small>It stopped after 30 minutes idle.</small><span class="m-btn primary">Restart</span></div>
+      <div class="ss"><span class="m-dot err" style="width:12px;height:12px"></span><b>The dev server didn't start</b><small><code>pnpm dev</code> exited with code 1</small><span class="m-btn primary">Open code</span></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Toast</h3><span class="not-p">Bottom center</span><span class="only-p">Above the safe area</span></header><div class="lib-body"><span class="m-toast">Copied live preview link</span><span class="m-toast">Workspace stopped</span></div></div>
+
+    <h2 class="lib-h">Annotation</h2>
+
+    <div class="lib-block"><header><h3>Marks</h3><span class="only-d">Hover, selected, resolved</span><span class="not-d">Tap, selected, resolved</span></header><div class="lib-body" style="gap:2.25rem;padding-top:1.75rem">
+      <div class="lib-item" data-ann="hover"><span class="ann a"><i>1</i><em>a.cta</em><span class="m-btn primary">Start free trial</span></span><small style="margin-top:8px" class="only-d">hover</small><small style="margin-top:8px" class="not-d">pressed</small></div>
+      <div class="lib-item" data-ann="sel"><span class="ann a"><i>1</i><span class="m-btn primary">Start free trial</span></span><small style="margin-top:8px">selected</small></div>
+      <div class="lib-item" data-ann="done"><span class="ann a"><i>1</i><span class="m-btn accent">Start free trial</span></span><small style="margin-top:8px">resolved</small></div>
+      <div class="lib-item"><span class="m-chip"><i>1</i>a.cta<em>1×</em></span><small>chip</small></div>
+      <div class="lib-item"><span class="m-chip ok"><i>✓</i>h1</span><small>chip, done</small></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Note card</h3><span class="only-d">Next to the element</span><span class="only-t">Next to the element, larger targets</span><span class="only-p">Bottom card over the sheet</span></header><div class="lib-body">
+      <div class="note-card"><span class="m-mono" style="color:var(--accent)">a.cta · Start free trial</span><div class="m-input" style="min-height:54px;align-items:flex-start;color:var(--ink)">Use the brand blue here|</div><div class="m-foot"><span class="m-btn danger only-d">Remove</span><span class="m-btn ghost">Cancel</span><span class="m-btn accent">Add note</span></div><small class="only-d" style="color:var(--muted);font-size:11px">⌘ Enter to add · Esc to cancel</small></div>
+    </div></div>
+
+    <h2 class="lib-h">Chat</h2>
+
+    <div class="lib-block"><header><h3>Empty chat</h3><span>First thing in a new agent</span></header><div class="lib-body" style="justify-content:center">
+      <div class="empty-chat"><span class="m-mark" style="width:38px;height:38px;font-size:19px">श्र</span><b>Build with the agent</b><small>Describe a change, or select elements in the preview to point it at exact spots.</small></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Messages and steps</h3><span>Message, thinking, tools, command, approval</span></header><div class="lib-body col chat-col">
+      <div class="m-bubble">Use the brand blue on the CTA<div class="m-chips"><span class="m-chip"><i>1</i>a.cta</span></div></div>
+      <details class="thinking" open><summary>Thought for 4s</summary><p>The CTA uses <code>.btn</code>. The brand class exists in the theme, so this is a one-line change.</p></details>
+      <div class="steps"><div><svg width="13" height="13"><use href="#i-search"/></svg><span>Searched <b>btn-brand</b></span><small>3 files</small></div><div><svg width="13" height="13"><use href="#i-code"/></svg><span>Read <b>Hero.tsx</b></span><small>48 lines</small></div></div>
+      <div class="m-tool"><div class="m-tool-head"><svg width="14" height="14"><use href="#i-code"/></svg><span>src/components/Hero.tsx</span><span class="m-add" style="flex:none">+1</span><span class="m-del" style="flex:none">−1</span></div><div class="m-diff"><div class="d">-  &lt;a className="btn"&gt;</div><div class="a">+  &lt;a className="btn btn-brand"&gt;</div><div class="skip">··· 12 unchanged lines</div></div></div>
+      <div class="run"><div class="run-head"><svg width="13" height="13"><use href="#i-term"/></svg><code>pnpm test hero</code><span class="m-tag ok">passed</span></div><pre>✓ renders brand CTA (14 ms)
+✓ headline tracking (6 ms)
+2 passed</pre></div>
+      <div class="run failed"><div class="run-head"><svg width="13" height="13"><use href="#i-term"/></svg><code>pnpm lint</code><span class="m-tag err">exit 1</span></div><pre>Hero.tsx:12  'Link' is defined but never used</pre></div>
+      <div class="m-approve"><span><b>Run command?</b> <code>pnpm add clsx</code></span><div class="m-foot"><span class="m-btn primary">Allow</span><span class="m-btn ghost">Deny</span></div></div>
+      <div class="m-working"><span class="ld wedge"></span><b style="color:var(--ink);font-weight:550">Editing</b> · 12s · <u>1 background task</u></div>
+      <div class="turn-usage">4 steps · 12.4k tokens · ~$0.04</div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Files changed</h3><span class="only-d">Diff opens as a side panel</span><span class="only-t">Diff opens as a side panel</span><span class="only-p">Diff opens as a full sheet</span></header><div class="lib-body col">
+      <div class="m-tool"><div class="m-tool-head"><b style="flex:1">3 files</b><span class="m-add" style="flex:none">+18</span><span class="m-del" style="flex:none">−6</span><span>▾</span></div><div class="files"><div><span>src/components/Hero.tsx</span><span><i class="m-add">+3</i> <i class="m-del">−2</i></span></div><div><span>src/styles/theme.css</span><span><i class="m-add">+12</i> <i class="m-del">−1</i></span></div><div><span>.shram.yaml</span><span><i class="m-add">+3</i> <i class="m-del">−3</i></span></div></div></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Widgets</h3><span>Agent asks with buttons</span></header><div class="lib-body col chat-col">
+      <div class="widget"><span>Which branch should the preview boot?</span><div class="m-foot" style="justify-content:flex-start;flex-wrap:wrap"><span class="m-btn">main</span><span class="m-btn">feature/invoices</span><span class="m-btn ghost">Other…</span></div></div>
+    </div></div>
+
+    <h2 class="lib-h">Navigation</h2>
+
+    <div class="lib-block"><header><h3>Agents list</h3><span class="only-d">Left rail</span><span class="only-t">Drawer</span><span class="only-p">Full screen with floating New agent</span></header><div class="lib-body">
+      <div class="agents-demo">
+        <div class="m-input"><svg width="14" height="14"><use href="#i-search"/></svg>Search agents<span class="kbd only-d">⌘K</span></div>
+        <span class="m-btn primary not-p" style="justify-content:flex-start"><svg><use href="#i-plus"/></svg>New agent</span>
+        <h4>Today</h4>
+        <div class="m-chatrow active"><span>Tighten hero and CTA</span><span class="ld dots" style="width:auto;flex:none"><i></i><i></i><i></i></span></div>
+        <div class="m-chatrow"><span>Pricing grid on phones</span><small><i class="m-add">+24</i> <i class="m-del">−9</i></small></div>
+        <h4>Earlier</h4>
+        <div class="m-chatrow"><span>Invoice PDF export</span><small>Tue</small></div>
+        <span class="m-btn fab only-p"><svg><use href="#i-plus"/></svg>New agent</span>
+      </div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Menu</h3><span class="not-p">Popover under the ⋯ button</span><span class="only-p">Bottom sheet</span></header><div class="lib-body">
+      <div class="m-menu"><div class="m-grab only-p" style="display:block;margin:4px auto 8px"></div><div>Usage<small>12.4k tokens</small></div><div>Background tasks<span class="count">1</span></div><div>Copy preview link</div><div><span>Branch<br><small>feature/invoices</small></span></div><div>Show code</div><hr><div class="red">Stop workspace</div></div>
+    </div></div>
+
+    <h2 class="lib-h">Sheets and dialogs</h2>
+
+    <div class="lib-block"><header><h3>Model</h3><span class="not-p">Popover above the composer</span><span class="only-p">Sheet</span></header><div class="lib-body">
+      <div class="lib-sheet sheetish"><div class="m-grab only-p"></div><div class="m-sheet-head only-p"><b>Model</b></div>
+        <p class="m-sub" style="margin:4px 0 2px!important">Cloud</p>
+        <div class="m-row"><span>Fast model</span><svg width="16" height="16" style="color:var(--accent)"><use href="#i-check"/></svg></div>
+        <div class="m-row"><span>Strong model</span></div>
+        <div class="m-row"><span>Long-context model</span></div>
+        <p class="m-sub" style="margin:8px 0 2px!important">On this machine</p>
+        <div class="m-row"><span>Local model</span><small style="color:var(--muted);font-size:12px">free</small></div>
+      </div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Settings</h3><span class="not-p">Popover by the gear</span><span class="only-p">Sheet</span></header><div class="lib-body">
+      <div class="lib-sheet sheetish"><div class="m-grab only-p"></div><div class="m-sheet-head only-p"><b>Settings</b></div>
+        <div class="m-row"><span>Auto-approve edits &amp; commands</span><button class="switch" role="switch" aria-checked="false" aria-label="Auto-approve edits and commands" tabindex="-1"></button></div>
+        <div class="m-row"><span>Open code on every edit</span><button class="switch" role="switch" aria-checked="true" aria-label="Open code on every edit" tabindex="-1"></button></div>
+      </div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Usage</h3><span>What this chat has used</span></header><div class="lib-body">
+      <div class="lib-sheet sheetish"><div class="m-grab only-p"></div><div class="m-sheet-head"><b>Usage</b></div>
+        <p class="m-sub" style="margin:6px 0 2px!important">This chat</p>
+        <div class="m-row"><span>Turns</span><b class="num">6</b></div>
+        <div class="m-row"><span>Tokens in / out</span><b class="num">10.9k / 1.5k</b></div>
+        <div class="m-row"><span>Estimated cost</span><b class="num">~$0.04</b></div>
+        <p class="m-sub" style="margin:8px 0 2px!important">Context</p>
+        <div class="m-row" style="flex-direction:column;align-items:stretch;gap:6px"><span style="display:flex;justify-content:space-between"><span>Estimated context fill</span><b class="num">38%</b></span><span class="fill"><i style="width:38%"></i></span></div>
+      </div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Background tasks</h3><span>Long commands keep running</span></header><div class="lib-body">
+      <div class="lib-sheet sheetish"><div class="m-grab only-p"></div><div class="m-sheet-head"><b>Background tasks</b></div>
+        <p class="m-sub" style="margin:6px 0 2px!important">Running</p>
+        <div class="m-row"><span style="display:flex;gap:8px;align-items:center"><span class="ld orbit" style="width:13px;height:13px"></span><code>pnpm dev</code></span><small style="color:var(--muted);font-size:12px">4m</small></div>
+        <p class="m-sub" style="margin:8px 0 2px!important">Finished 2</p>
+        <div class="m-row"><span style="display:flex;gap:8px;align-items:center"><span class="m-dot ok"></span><code>pnpm test</code></span><small style="color:var(--muted);font-size:12px">12s</small></div>
+        <div class="m-row"><span style="display:flex;gap:8px;align-items:center"><span class="m-dot err"></span><code>pnpm lint</code></span><small style="color:var(--err);font-size:12px">exit 1</small></div>
+      </div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Dialog</h3><span class="not-p">Centered</span><span class="only-p">Bottom sheet</span></header><div class="lib-body">
+      <div class="m-modal dlg"><div class="m-grab only-p" style="display:block"></div><h3>Delete tally-web?</h3><p>The sandbox and any uncommitted or unpushed work in it are removed for good.</p><div class="m-foot"><span class="m-btn ghost">Cancel</span><span class="m-btn danger confirm">Delete</span></div></div>
+    </div></div>
+
+    <h2 class="lib-h">Lists and cards</h2>
+
+    <div class="lib-block"><header><h3>Workspace card</h3><span class="not-p">One row</span><span class="only-p">Stacked, actions share a row</span></header><div class="lib-body col">
+      <div class="m-wcard"><div class="m-winfo"><div class="m-wname"><span>cran-cg/</span>tally-web</div><div class="m-wmeta"><span class="m-dot ok"></span>Running · feature/invoices</div></div><div class="m-actions"><span class="m-btn primary">Open</span><span class="m-btn danger">Stop</span><span class="m-btn">Restart</span><span class="m-btn ghost">Delete</span></div></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Access row</h3><span>Admin approvals</span></header><div class="lib-body col">
+      <div class="m-row" style="border:0"><div class="m-who"><span class="m-avatar">AK</span><div><b>akshara-k</b><small>Signed in 2 hours ago</small></div></div><div class="m-actions"><span class="m-btn primary">Approve</span><span class="m-btn ghost">Deny</span></div></div>
+    </div></div>
+
+    <div class="lib-block"><header><h3>Empty states</h3><span>Say what to do next</span></header><div class="lib-body col">
+      <div class="empty-row"><b>No workspaces yet</b><small>Create one from any GitHub repo you can clone.</small><span class="m-btn primary"><svg><use href="#i-plus"/></svg>New workspace</span></div>
+      <div class="empty-row"><b>No one is waiting</b><small>People who sign in show up here for approval.</small></div>
+    </div></div>
+
+  </div></div>
+</article>
+
+<!-- ======================= INSTALL ======================= -->
+<article class="page" data-page="install" hidden>
+  <header><h1>Install</h1><p class="lede">Run the whole platform on one machine with Docker Compose. You need a GitHub OAuth app and about five minutes.</p></header>
+  <section id="prerequisites">
+    <h2>Prerequisites</h2>
+    <ul><li>Docker with Compose v2</li><li>A GitHub account to register an OAuth app</li><li>Optional: a HashiCorp Vault for per-project secrets</li></ul>
+  </section>
+  <section id="oauth">
+    <h2>1. Create a GitHub OAuth app</h2>
+    <p>Go to <a href="https://github.com/settings/developers" target="_blank" rel="noopener noreferrer">GitHub developer settings</a> and choose <strong>New OAuth App</strong>.</p>
+    <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+      <tr><td>Application name</td><td><code>Shram</code></td></tr>
+      <tr><td>Homepage URL</td><td><code>http://localhost:3000</code></td></tr>
+      <tr><td>Callback URL</td><td><code>http://localhost:8083/auth/github/callback</code></td></tr>
+    </tbody></table></div>
+    <p>The callback must match exactly. It is the auth service's OAuth endpoint.</p>
+  </section>
+  <section id="env">
+    <h2>2. Create <code>.env</code></h2>
+    <div class="code-wrap"><pre class="code">./scripts/setup.sh   <span class="c"># writes .env and checks Docker</span>
+
+<span class="c"># then fill in the two required values</span>
+<span class="k">GITHUB_CLIENT_ID</span>=…
+<span class="k">GITHUB_CLIENT_SECRET</span>=…</pre></div>
+  </section>
+  <section id="run">
+    <h2>3. Start it</h2>
+    <div class="code-wrap"><pre class="code">./scripts/dev.sh     <span class="c"># Postgres, auth :8083, workspace manager :8081, proxy :8082, web :3000</span></pre><button class="icon-btn" data-copy="./scripts/dev.sh" aria-label="Copy command"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8.75" y="8.75" width="10.5" height="10.5" rx="1.75"/><path d="M15.25 8.75V6.5c0-.97-.78-1.75-1.75-1.75h-7c-.97 0-1.75.78-1.75 1.75v7c0 .97.78 1.75 1.75 1.75h2.25"/></svg></button></div>
+    <p>Open <code>localhost:3000</code>, sign in with GitHub, pick a repo and choose <strong>Create workspace</strong>.</p>
+  </section>
+  <section id="config">
+    <h2>Per-project config</h2>
+    <p>Add <code>.shram.yaml</code> to a repo to control secrets, env and the dev command. Shram reads it through the GitHub API before the container starts. No file means defaults, not an error.</p>
+    <pre class="code"><span class="k">name</span>: my-app
+<span class="k">secrets</span>:
+  <span class="k">vault_path</span>: "secret/data/projects/my-app/dev"
+<span class="k">env</span>:
+  <span class="k">NODE_ENV</span>: development
+<span class="k">services</span>:                     <span class="c"># proxied via /__svc/{name}/</span>
+  <span class="k">auth</span>: https://auth.staging.example.com
+<span class="k">dev_command</span>: "pnpm dev"</pre>
+  </section>
+</article>
+
+<!-- ======================= FEATURES ======================= -->
+<article class="page" data-page="features" hidden>
+  <header><h1>Features</h1><p class="lede">What a workspace gives you, from the container up to the chat pane.</p></header>
+  <section id="workspaces">
+    <h2>Workspaces</h2>
+    <p>Each workspace is an Ubuntu 22.04 container with code-server on 8080, your dev server on 3000 and the agent daemon on 4100. Node 20, pnpm 9 and Git credentials are ready, and secrets are written to <code>.env.local</code>. Restart runs the same provisioning path as create, so secrets, ports and routes always come back.</p>
+  </section>
+  <section id="preview">
+    <h2>Live preview with HMR</h2>
+    <p>The preview is served through the proxy at <code>/ws/{id}/preview/</code>. WebSocket upgrades are relayed in both directions, so Vite and Next.js hot reload work inside the iframe without exposing raw ports.</p>
+  </section>
+  <section id="modes">
+    <h2>Annotation modes</h2>
+    <div class="table-wrap"><table><thead><tr><th>Mode</th><th>Badge</th><th>Use it for</th></tr></thead><tbody>
+      <tr><td><strong>Ordered</strong></td><td>1, 2, 3</td><td>Flows and sequences. Click order is sent to the agent.</td></tr>
+      <tr><td><strong>Unordered</strong></td><td>dot</td><td>Independent fixes. Order is ignored.</td></tr>
+    </tbody></table></div>
+    <p>A selected element keeps an edit counter. When the agent's change re-renders it, the badge updates, so you can see what was touched.</p>
+  </section>
+  <section id="screenshots">
+    <h2>Screenshots</h2>
+    <p>Each element is captured the moment you confirm it, from the page as it is right now: open menus, typed input and scroll state included. If a capture fails, the message still goes out with the structured context. A failed screenshot never blocks a send. <a href="#kshan">How the capture engine works</a>.</p>
+  </section>
+  <section id="steering">
+    <h2>Steering and stop</h2>
+    <p>Send while the agent works and your message joins the running turn at the next step boundary. A running tool batch finishes first. A model call in flight is cut and asked again with your message. Stop is the only hard abort.</p>
+  </section>
+  <section id="guardrails">
+    <h2>Tool guardrails</h2>
+    <ul>
+      <li>Every file path goes through a realpath and prefix jail. Absolute paths, <code>..</code> and symlink escapes are rejected.</li>
+      <li>Search runs <code>grep</code> from an argument array, never a shell string.</li>
+      <li><code>run_command</code> runs only after you approve it.</li>
+    </ul>
+  </section>
+  <section id="cost">
+    <h2>Cost estimate</h2>
+    <p>Every model call reports input, output and cache tokens. Prices come from a catalog that the control plane fetches and pushes to the workspace. A model without a known price shows no cost rather than a guess.</p>
+  </section>
+  <section id="secrets">
+    <h2>Secrets</h2>
+    <p>Point <code>.shram.yaml</code> at a Vault KV path and the values are injected at provision time. They never pass through the browser.</p>
+  </section>
+</article>
+
+<!-- ======================= OUTPUT ======================= -->
+<article class="page" data-page="output" hidden>
+  <header><h1>Output</h1><p class="lede">What the agent receives when you send a message with two selections.</p></header>
+  <section>
+    <h2>Structured context</h2>
+    <p>Each selection becomes one object. Order is set in ordered mode and is still recorded in unordered mode, where the agent is told it means nothing.</p>
+    <pre class="code">[
+  {
+    <span class="k">"selector"</span>: "section.hero &gt; a.cta",
+    <span class="k">"tagName"</span>: "A",
+    <span class="k">"textSnippet"</span>: "Start free trial",
+    <span class="k">"bounds"</span>: { "x": 96, "y": 312, "width": 132, "height": 40 },
+    <span class="k">"order"</span>: 1,
+    <span class="k">"mode"</span>: "ordered",
+    <span class="k">"note"</span>: "Use the brand blue"
+  },
+  {
+    <span class="k">"selector"</span>: "section.hero &gt; h1",
+    <span class="k">"tagName"</span>: "H1",
+    <span class="k">"textSnippet"</span>: "Get paid before the coffee cools.",
+    <span class="k">"bounds"</span>: { "x": 96, "y": 184, "width": 540, "height": 112 },
+    <span class="k">"order"</span>: 2,
+    <span class="k">"mode"</span>: "ordered",
+    <span class="k">"note"</span>: "Tighten the tracking"
+  }
+]</pre>
+  </section>
+  <section>
+    <h2>Images</h2>
+    <ul>
+      <li>One <strong>crop per element</strong>, captured when you confirmed it</li>
+      <li>One <strong>viewport composite</strong> at send time, with the numbered badges in the picture</li>
+      <li>A <strong>staleness check</strong>: selections whose element has since left the page are listed by selector</li>
+    </ul>
+    <p>Images reach the model as native image blocks. For text-only backends they are replaced by a short marker, so the model knows a picture existed.</p>
+  </section>
+  <section>
+    <h2>Capture metrics</h2>
+    <p>Every capture reports its own timing, cache hit rate, longest main-thread chunk and which encoder ran. Slow pages show up in the data, not in user complaints.</p>
+  </section>
+</article>
+
+<!-- ======================= SCHEMA ======================= -->
+<article class="page" data-page="schema" hidden>
+  <header><h1>Schema</h1><p class="lede">Two message channels: the overlay talks to the chat pane over <code>postMessage</code>, and the chat pane talks to the agent over a WebSocket.</p></header>
+  <section id="overlay-messages">
+    <h2>Overlay messages</h2>
+    <p>The overlay is injected into every preview page but does nothing until the chat pane sends a handshake. After that it only posts to the origin that sent the handshake.</p>
+    <div class="table-wrap"><table><thead><tr><th>Type</th><th>Direction</th><th>Carries</th></tr></thead><tbody>
+      <tr><td><code>shram:annotate:handshake</code></td><td>pane → page</td><td>Turns the overlay on and pins the origin</td></tr>
+      <tr><td><code>shram:annotate:ready</code></td><td>page → pane</td><td>Mode and active state</td></tr>
+      <tr><td><code>shram:annotate:selection</code></td><td>page → pane</td><td>One selection object</td></tr>
+      <tr><td><code>shram:annotate:deselect</code></td><td>page → pane</td><td>Selector</td></tr>
+      <tr><td><code>shram:annotate:mutated</code></td><td>page → pane</td><td>Selector and edit count</td></tr>
+      <tr><td><code>shram:annotate:captures</code></td><td>page → pane</td><td>Crops, composite, stale selectors, metrics</td></tr>
+    </tbody></table></div>
+  </section>
+  <section id="envelope">
+    <h2>Chat envelope</h2>
+    <pre class="code">{ <span class="k">"v"</span>: 1, <span class="k">"id"</span>: "m_19c2", <span class="k">"ts"</span>: 1760180412000, <span class="k">"payload"</span>: { "type": "user_msg", … } }</pre>
+    <div class="table-wrap"><table><thead><tr><th>Client → agent</th><th>Agent → client</th></tr></thead><tbody>
+      <tr><td><code>user_msg</code></td><td><code>text_delta</code></td></tr>
+      <tr><td><code>steer</code></td><td><code>tool_call</code>, <code>tool_result</code></td></tr>
+      <tr><td><code>approval_response</code></td><td><code>approval_request</code></td></tr>
+      <tr><td><code>widget_action</code></td><td><code>widget</code>, <code>file_touched</code></td></tr>
+      <tr><td><code>interrupt</code></td><td><code>steer_ack</code>, <code>usage</code>, <code>done</code>, <code>error</code></td></tr>
+    </tbody></table></div>
+  </section>
+</article>
+
+<!-- ======================= PROXY ======================= -->
+<article class="page" data-page="proxy" hidden>
+  <header><h1>Proxy</h1><p class="lede">One Go reverse proxy carries every IDE, preview and agent byte. The browser never sees a container port.</p></header>
+  <section>
+    <h2>Routes</h2>
+    <div class="table-wrap"><table><thead><tr><th>Path</th><th>Target</th></tr></thead><tbody>
+      <tr><td><code>/ws/{id}/ide/*</code></td><td>container :8080 (code-server)</td></tr>
+      <tr><td><code>/ws/{id}/preview/*</code></td><td>container :3000 (your dev server)</td></tr>
+      <tr><td><code>/ws/{id}/agent/*</code></td><td>container :4100 (agentd)</td></tr>
+      <tr><td><code>/__svc/{name}/*</code></td><td>services from <code>.shram.yaml</code></td></tr>
+      <tr><td><code>/internal/routes</code></td><td>route registration, internal token only</td></tr>
+    </tbody></table></div>
+  </section>
+  <section>
+    <h2>Auth</h2>
+    <p><code>/ws/*</code> and <code>/__svc/*</code> need a JWT as a Bearer header or the <code>shram_token</code> cookie. The cookie is how iframes authenticate, since they can't set headers.</p>
+  </section>
+  <section>
+    <h2>The one rewrite</h2>
+    <p>Preview HTML is the only response the proxy changes. It adds one script tag before <code>&lt;/body&gt;</code> and fixes Content-Length. Every other response passes through byte for byte. <code>DISABLE_PREVIEW_OVERLAY=1</code> turns the rewrite off.</p>
+  </section>
+  <section>
+    <h2>Cost per request</h2>
+    <div class="table-wrap"><table><thead><tr><th>Benchmark</th><th>Time</th><th>Allocs</th></tr></thead><tbody>
+      <tr><td>Route lookup</td><td class="num">19.8 ns</td><td class="num">0</td></tr>
+      <tr><td>Auth middleware</td><td class="num">5.5 µs</td><td class="num">58</td></tr>
+      <tr><td>Full proxied request</td><td class="num">338 µs</td><td class="num">196</td></tr>
+    </tbody></table></div>
+  </section>
+</article>
+
+<!-- ======================= KSHAN ======================= -->
+<article class="page" data-page="kshan" hidden>
+  <header><h1>kshan <span style="font-family:var(--font-deva);font-weight:400;color:var(--muted)">क्षण</span></h1><p class="lede">“An instant.” The capture engine behind annotation screenshots, built as its own package because the first version couldn't capture busy pages at all.</p></header>
+  <section>
+    <h2>The problem</h2>
+    <p>The first serializer copied every computed style of every node, in one blocking pass, inside the user's app, often in a background iframe on a shared cloud CPU.</p>
+    <div class="table-wrap"><table><thead><tr><th>Nodes</th><th>Old walk</th><th>SVG size</th><th>Result</th></tr></thead><tbody>
+      <tr><td class="num">421</td><td class="num">1,447 ms</td><td class="num">4.3 MB</td><td>Page frozen for 1.5 s</td></tr>
+      <tr><td class="num">2,801</td><td class="num">9,314 ms</td><td class="num">28.8 MB</td><td>Past the 5 s timeout, capture fails</td></tr>
+    </tbody></table></div>
+  </section>
+  <section>
+    <h2>The fix</h2>
+    <ul>
+      <li><strong>Memoized style reads</strong>: work scales with unique components, not nodes</li>
+      <li><strong>Time-sliced walk</strong>: 8 ms main-thread chunks, so the page never janks</li>
+      <li><strong>Encoding in a worker</strong>: JPEG work leaves the main thread, with a fallback under strict CSP</li>
+      <li><strong>Built-in metrics</strong>: every capture reports its own timings</li>
+    </ul>
+    <p>The rule: move everything movable off the main thread, and make whatever has to stay interruptible.</p>
+  </section>
+</article>
+
+<!-- ======================= AGENT ======================= -->
+<article class="page" data-page="agent" hidden>
+  <header><h1>Agent</h1><p class="lede">One agent core, two front ends: the web chat pane and a VS Code extension.</p></header>
+  <section>
+    <h2>Shape</h2>
+    <ul>
+      <li><code>packages/agent-core</code>: the loop, jailed tools, providers and the protocol. It has no <code>vscode</code> dependency.</li>
+      <li><code>apps/agentd</code>: a WebSocket daemon on :4100 that the chat pane reaches through the proxy</li>
+      <li><code>extensions/shram-agent</code>: a thin VS Code webview over the same core</li>
+    </ul>
+  </section>
+  <section>
+    <h2>Providers</h2>
+    <p>Cloud models through any compatible API and local models on the workspace all run through the same steering harness, so mid-turn messages behave the same on every model.</p>
+  </section>
+</article>
+
+<!-- ======================= CHANGELOG ======================= -->
+<article class="page" data-page="changelog" hidden>
+  <header><h1>Changelog</h1><p class="lede">Notable changes, newest first.</p></header>
+  <section><h2>October 2026</h2><ul>
+    <li>Workspace status shown as dot indicators; slimmer cards on phones</li>
+    <li>Mobile polish for streamed markdown and tool rows in chat</li>
+    <li>Chat cost estimate priced from a catalog fetched on the control plane</li>
+    <li>Steering folds into the running turn instead of aborting it</li>
+    <li>Native tool loop with steer and stop</li>
+    <li>Postgres-backed store; image and file attachments in chat</li>
+  </ul></section>
+  <section><h2>September 2026</h2><ul>
+    <li>More chat models to choose from</li>
+    <li>Live preview runtime flash</li>
+    <li>IDE and preview gated to the workspace owner</li>
+  </ul></section>
+  <section><h2>July 2026</h2><ul>
+    <li>kshan capture engine replaces the inline serializer</li>
+    <li>Annotation screenshots as primary grounding for the agent</li>
+    <li>Chat-first workspace layout with a widget registry</li>
+  </ul></section>
+</article>
+
+<!-- ======================= PERF ======================= -->
+<article class="page" data-page="perf" hidden>
+  <header><h1>Performance</h1><p class="lede">Benchmarks are contracts. Every metric has a threshold in the repo, and CI fails a pull request that crosses one.</p></header>
+  <section>
+    <div class="table-wrap"><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+      <tr><td>Proxy route lookup</td><td class="num">19.8 ns/op</td></tr>
+      <tr><td>Proxy auth middleware</td><td class="num">5,502 ns/op</td></tr>
+      <tr><td>Proxied request, end to end</td><td class="num">337,689 ns/op</td></tr>
+      <tr><td>JWT generate</td><td class="num">4,699 ns/op</td></tr>
+      <tr><td>JWT validate</td><td class="num">8,068 ns/op</td></tr>
+      <tr><td>Detect dev server, Vite</td><td class="num">47.2 ms</td></tr>
+      <tr><td>Detect dev server, Next.js</td><td class="num">91.2 ms</td></tr>
+      <tr><td>Web build</td><td class="num">30 s</td></tr>
+    </tbody></table></div>
+    <p>Micro-benchmarks run on every commit. End-to-end runs create a real sandbox, so they run on the box only and never from CI.</p>
+  </section>
+</article>
+
+<!-- ======================= FAQ ======================= -->
+<article class="page" data-page="faq" hidden>
+  <header><h1>FAQ</h1></header>
+  <section><h3>Do I need to install anything?</h3><p>No. Shram runs in the browser. Sign in with GitHub, pick a repo and the workspace starts in the cloud.</p></section>
+  <section><h3>Does annotating change my app?</h3><p>No. Annotate mode catches your clicks so they don't reach your app, and turning it off gives the preview back unchanged.</p></section>
+  <section><h3>Can I use it on an iPad or a phone?</h3><p>Yes. iPad keeps chat and preview side by side, and phones put the chat first with the preview one tap away. Annotating works by tapping.</p></section>
+  <section><h3>Does the agent run commands on its own?</h3><p>No. Every command waits for you to tap Allow.</p></section>
+  <section><h3>What if a screenshot of my selection fails?</h3><p>Your message still goes out with the element's name, text and position. Sending is never blocked.</p></section>
+  <section data-dev><h3>Why not take screenshots in a headless browser?</h3><p>It loads a fresh page, so any state you reached by clicking around is lost. It would also add 150–300 MB to every workspace and slow down startup.</p></section>
+  <section data-dev><h3>Does the overlay touch my HTML?</h3><p>The proxy adds one script tag to preview HTML. It does nothing until the chat pane sends a handshake. <code>DISABLE_PREVIEW_OVERLAY=1</code> turns it off.</p></section>
+</article>
+
+<!-- ======================= COLOPHON ======================= -->
+<article class="page" data-page="colophon" hidden>
+  <header><h1>Colophon</h1></header>
+  <section>
+    <p>Designed and built by Chiranjeev Gupta.</p>
+    <p>Every screen on this site is live HTML and CSS, not an image. Each one reflows with container queries, so the same screen really is laid out for desktop, iPad and phone. The site is one file with no framework and no build step, and it follows your light or dark setting.</p>
+    <p>श्रम (shram) means “work”.</p>
+  </section>
+</article>
+
+<footer class="footer" style="max-width:var(--col);margin-inline:auto;margin-bottom:5rem">
+  <p>Made by <a href="https://github.com/cRAN-cg" target="_blank" rel="noopener noreferrer">Chiranjeev Gupta</a></p>
+  <a href="#colophon">Colophon</a>
+</footer>
+</main>
+
+<!-- annotation UI -->
+<div class="annot-hover" id="annotHover" data-annot-ui><span></span></div>
+<div id="annotLayer" data-annot-ui></div>
+<div class="annot-toolbar" id="annotToolbar" data-annot-ui role="toolbar" aria-label="Annotation toolbar">
+  <div class="tb-extra">
+    <button id="tbPause" aria-pressed="false" title="Pause animations" aria-label="Pause animations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6.5v11M15 17.5v-11"/></svg></button>
+    <button id="tbMode" title="Switch to unordered markers" aria-label="Marker mode: ordered"><span class="tb-mode">1·2</span></button>
+    <button id="tbCopy" title="Copy output" aria-label="Copy output"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="8.75" y="8.75" width="10.5" height="10.5" rx="1.75"/><path d="M15.25 8.75V6.5c0-.97-.78-1.75-1.75-1.75h-7c-.97 0-1.75.78-1.75 1.75v7c0 .97.78 1.75 1.75 1.75h2.25"/></svg></button>
+    <button id="tbClear" title="Clear annotations" aria-label="Clear annotations"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5.5 7.5h13M10 7.5V5.75h4V7.5M7.25 7.5l.75 11.25h8l.75-11.25"/></svg></button>
+    <span class="tb-sep"></span>
+  </div>
+  <button id="tbMain" aria-pressed="false" title="Annotate this page" aria-label="Annotate this page">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 12H5.5M18.5 6.75h-13M9.25 17.25H5.5"/><path d="M16 12.75l.52 1.22c.29.68.83 1.22 1.51 1.51l1.22.52-1.22.52c-.68.29-1.22.83-1.51 1.51L16 19.25l-.52-1.22a2.86 2.86 0 00-1.51-1.51L12.75 16l1.22-.52c.68-.29 1.22-.83 1.51-1.51z"/></svg>
+    <span class="annot-count" id="tbCount"></span>
+  </button>
+</div>
+
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 00-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.56 9.56 0 015 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0012 2z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></g></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-side" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h10M4 17h13"/></g></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/></g></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M3.5 9h17"/></g></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5M19 5l-8 8M17 14v4a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 015 18V8.5A1.5 1.5 0 016.5 7H10"/></g></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12a7 7 0 11-2.05-4.95M19 5v4h-4"/></g></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></g></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 12H5.5M18.5 6.75h-13M9.25 17.25H5.5"/><path d="M16 12.75l.52 1.22c.29.68.83 1.22 1.51 1.51l1.22.52-1.22.52c-.68.29-1.22.83-1.51 1.51L16 19.25l-.52-1.22a2.86 2.86 0 00-1.51-1.51L12.75 16l1.22-.52c.68-.29 1.22-.83 1.51-1.51z"/></g></symbol>
+  <symbol id="i-order" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M10 7h10M10 12h10M10 17h10"/><path d="M4.5 6l1-.8V9M4 14h2l-2 2.5h2"/></g></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-term" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4 4-4 4M12.5 16H18"/></g></symbol>
+</svg>
+
+<!-- ============ screen templates (cloned into device frames) ============ -->
+<template id="tpl-landing">
+<div class="m-app"><div class="m-landing">
+  <header class="m-top"><span class="m-word">Shram<span>श्रम</span></span><nav><span class="m-link">Onboard a project</span><span class="m-btn primary"><svg><use href="#i-github"/></svg>Sign in</span></nav></header>
+  <section class="m-hero">
+    <p class="m-kicker">Cloud workspace</p>
+    <h1>Open a GitHub repo in the browser. The agent edits in the open.</h1>
+    <p class="m-lede">Anyone with access to the repository can sign in, launch a workspace, and watch file changes land as green additions and red deletions, right in the chat.</p>
+    <span class="m-btn primary lg"><svg><use href="#i-github"/></svg>Sign in with GitHub</span>
+  </section>
+  <section class="m-steps">
+    <h2>How someone onboards a project</h2>
+    <ol>
+      <li><strong>Sign in with GitHub.</strong> Shram lists the repositories you can already clone.</li>
+      <li><strong>Create a workspace.</strong> Pick a repo, or paste a <code>github.com/owner/repo</code> URL, and choose the branch.</li>
+      <li><strong>Launch.</strong> No <code>.shram.yaml</code>? The agent reads the tree and writes one, so the preview can boot.</li>
+      <li><strong>Build.</strong> Preview and agent open side by side. Edits stream in as <span class="m-add">+added</span> / <span class="m-del">−removed</span> lines.</li>
+    </ol>
+  </section>
+  <section class="m-yaml">
+    <div><h2>Project file</h2><p>You don't write this by hand. The agent adds it when a repo doesn't have one, and you can edit it in the workspace.</p></div>
+    <pre class="m-pre">name: tally-web
+dev_command: pnpm dev
+ports:
+  - 3000
+env:
+  NODE_ENV: development</pre>
+  </section>
+</div></div>
+</template>
+
+<template id="tpl-auth">
+<div class="m-app m-auth" data-state="out">
+  <header class="m-top"><span class="m-word">Shram<span>श्रम</span></span><nav><span class="m-link">Onboard a project</span></nav></header>
+  <div class="m-auth-main">
+    <div class="m-card st-out m-st">
+      <div class="m-alert st-denied m-st"><svg width="16" height="16"><use href="#i-x"/></svg><span>This Shram instance is invite-only. Your GitHub account isn't on the allowlist.</span></div>
+      <div class="m-mark">श्र</div>
+      <h2>Sign in to Shram</h2>
+      <p>Use your GitHub account. Shram lists the repositories you can already clone and nothing else.</p>
+      <span class="m-btn primary lg"><svg><use href="#i-github"/></svg>Continue with GitHub</span>
+      <p class="m-fine">New accounts wait for an admin to approve them.</p>
+    </div>
+    <div class="m-card st-waiting m-st">
+      <div class="m-who"><span class="m-avatar">CG</span><div><b>cran-cg</b><small>Signed in with GitHub</small></div></div>
+      <h2>Waiting for approval</h2>
+      <p>An admin has to approve this GitHub account before you can create a workspace. This page updates by itself.</p>
+      <div class="m-working"><span class="ld review"></span>Approval pending</div>
+      <span class="m-btn ghost">Sign out</span>
+    </div>
+    <div class="m-card m-admin st-admin m-st">
+      <h2>Who can use this instance</h2>
+      <p>Anyone can sign in with GitHub. They wait here until you approve them.</p>
+      <p class="m-sub" style="margin-top:6px!important">Waiting · 2</p>
+      <div>
+        <div class="m-row"><div class="m-who"><span class="m-avatar">AK</span><div><b>akshara-k</b><small>Signed in 2 hours ago</small></div></div><div class="m-actions"><span class="m-btn primary">Approve</span><span class="m-btn ghost">Deny</span></div></div>
+        <div class="m-row"><div class="m-who"><span class="m-avatar">RM</span><div><b>rohan-m</b><small>Signed in yesterday</small></div></div><div class="m-actions"><span class="m-btn primary">Approve</span><span class="m-btn ghost">Deny</span></div></div>
+      </div>
+      <p class="m-sub" style="margin-top:6px!important">Approved · 1</p>
+      <div class="m-row"><div class="m-who"><span class="m-avatar">CG</span><div><b>cran-cg</b><small>Admin</small></div></div><span class="m-tag ok">Admin</span></div>
+    </div>
+  </div>
+</div>
+</template>
+
+<template id="tpl-dash">
+<div class="m-app" data-modal="off">
+  <div class="m-dash">
+    <header><h1>Shram <span>श्रम</span></h1><div><span class="m-link">Onboard a project</span><span class="m-btn primary"><svg><use href="#i-plus"/></svg>New workspace</span></div></header>
+    <p class="m-sub">Your workspaces · 5</p>
+    <div class="m-list">
+      <div class="m-wcard"><div class="m-winfo"><div class="m-wname"><span>cran-cg/</span>tally-web</div><div class="m-wmeta"><span class="m-dot ok"></span>Running · feature/invoices · 2 agents</div></div><div class="m-actions"><span class="m-btn primary">Open</span><span class="m-btn danger">Stop</span><span class="m-btn">Restart</span><span class="m-btn ghost">Delete</span></div></div>
+      <div class="m-wcard"><div class="m-winfo"><div class="m-wname"><span>cran-cg/</span>shram</div><div class="m-wmeta"><span class="m-dot warn pulse"></span>Starting · main · installing dependencies</div></div><div class="m-actions one"><span class="m-btn primary busy"><span class="ld relay" style="color:currentColor"><i></i><i></i><i></i></span>Starting…</span><span class="m-btn ghost">Delete</span></div></div>
+      <div class="m-wcard"><div class="m-winfo"><div class="m-wname"><span>acme/</span>marketing-site</div><div class="m-wmeta"><span class="m-dot"></span>Stopped · main · 3 days ago</div></div><div class="m-actions one"><span class="m-btn primary">Restart</span><span class="m-btn ghost">Delete</span></div></div>
+      <div class="m-wcard"><div class="m-winfo"><div class="m-wname"><span>acme/</span>docs</div><div class="m-wmeta"><span class="m-dot warn"></span>Running · main <span class="m-tag warn">Old runtime</span></div></div><div class="m-actions one"><span class="m-btn primary">Recreate</span><span class="m-btn ghost">Delete</span></div></div>
+      <div class="m-wcard"><div class="m-winfo"><div class="m-wname"><span>acme/</span>billing-api</div><div class="m-wmeta"><span class="m-dot err"></span>Failed to start · dev command exited 1</div></div><div class="m-actions one"><span class="m-btn primary">Restart</span><span class="m-btn ghost">Delete</span></div></div>
+    </div>
+  </div>
+  <div class="m-modal-wrap"><div class="m-modal">
+    <div class="m-grab"></div>
+    <h3>New workspace</h3>
+    <div><span class="m-label">Paste a GitHub URL</span><div class="m-input">https://github.com/owner/repo</div></div>
+    <div class="m-or">or pick a repository</div>
+    <div class="m-input focus"><svg width="14" height="14"><use href="#i-search"/></svg>tally</div>
+    <div class="m-repos">
+      <div class="m-repo sel"><span><span class="m-radio" style="display:inline-block;vertical-align:-2px;margin-right:8px"></span>cran-cg/tally-web</span><small>main</small></div>
+      <div class="m-repo"><span><span class="m-radio" style="display:inline-block;vertical-align:-2px;margin-right:8px"></span>cran-cg/tally-api</span><small>main</small></div>
+      <div class="m-repo"><span><span class="m-radio" style="display:inline-block;vertical-align:-2px;margin-right:8px"></span>acme/tally-mobile</span><small>develop</small></div>
+    </div>
+    <div><span class="m-label">Branch</span><div class="m-input" style="color:var(--ink)">feature/invoices</div></div>
+    <div class="m-foot"><span class="m-btn ghost">Cancel</span><span class="m-btn primary">Create workspace</span></div>
+  </div></div>
+</div>
+</template>
+
+<template id="tpl-ws">
+<div class="m-app m-ws" data-ann="sel" data-drawer="off" data-sheet="off" data-note="off" style="height:100%">
+  <aside class="m-agents">
+    <div class="m-input"><svg width="14" height="14"><use href="#i-search"/></svg>Search agents</div>
+    <span class="m-btn primary"><svg><use href="#i-plus"/></svg>New agent</span>
+    <h4>Today</h4>
+    <div class="m-chatrow active"><span>Tighten hero and CTA</span><span class="ld dots" style="width:auto;flex:none"><i></i><i></i><i></i></span></div>
+    <div class="m-chatrow"><span>Pricing grid on phones</span><small>2h</small></div>
+    <h4>Earlier</h4>
+    <div class="m-chatrow"><span>Invoice PDF export</span><small>Tue</small></div>
+    <div class="m-chatrow"><span>Write .shram.yaml</span><small>Mon</small></div>
+    <div class="m-spacer"></div>
+    <div class="m-chatrow"><span>Customize agent</span></div>
+  </aside>
+  <section class="m-chat">
+    <header class="m-chat-head">
+      <span class="m-round" aria-label="Agents"><svg><use href="#i-side"/></svg><span class="m-dot ok"></span></span>
+      <b>Tighten hero and CTA</b>
+      <span class="m-pill"><span class="m-icon"><svg><use href="#i-eye"/></svg></span><span class="m-icon"><svg><use href="#i-dots"/></svg></span></span>
+    </header>
+    <div class="m-msgs">
+      <div class="m-bubble">Use the brand blue on the CTA and tighten the headline<div class="m-chips"><span class="m-chip"><i>1</i>a.cta</span><span class="m-chip"><i>2</i>h1</span></div></div>
+      <div>Reading the two elements you marked. The CTA uses the neutral button style and the headline has default tracking.</div>
+      <div class="m-tool"><div class="m-tool-head"><svg width="14" height="14"><use href="#i-code"/></svg><span>src/components/Hero.tsx</span><span class="m-add" style="flex:none">+3</span><span class="m-del" style="flex:none">−2</span></div>
+        <div class="m-diff"><div class="d">-  &lt;a className="btn"&gt;</div><div class="a">+  &lt;a className="btn btn-brand"&gt;</div><div class="d">-  &lt;h1 className="hero"&gt;</div><div class="a">+  &lt;h1 className="hero tracking-tight"&gt;</div></div></div>
+      <div class="m-approve"><span><b>Run command?</b> <code>pnpm test hero</code></span><div class="m-foot"><span class="m-btn primary">Allow</span><span class="m-btn ghost">Deny</span></div></div>
+      <div class="m-working"><span class="ld wedge"></span>Waiting for your approval</div>
+    </div>
+    <div class="m-composer">
+      <div class="m-chips"><span class="m-chip"><i>1</i>a.cta<em>1×</em></span><span class="m-chip"><i>2</i>h1<em>1×</em></span></div>
+      <div class="m-placeholder">Ask for a change, or mark the preview…</div>
+      <div class="m-composer-row"><span style="display:flex;align-items:center;gap:6px"><span class="m-icon" style="width:26px;height:26px"><svg><use href="#i-plus"/></svg></span><span class="m-model">Fast model ▾</span><span>~$0.04</span></span><span class="m-send"><svg><use href="#i-up"/></svg></span></div>
+    </div>
+  </section>
+  <section class="m-preview">
+    <div class="m-pbar"><span class="m-icon"><svg><use href="#i-share"/></svg></span><span class="m-icon"><svg><use href="#i-refresh"/></svg></span><span class="m-icon"><svg><use href="#i-code"/></svg></span><span class="m-icon on"><svg><use href="#i-pin"/></svg></span><span class="m-icon"><svg><use href="#i-order"/></svg></span><span class="m-url">tally-web · /</span><span class="m-icon stop"><svg><use href="#i-stop"/></svg></span></div>
+    <div class="m-pbody"><div class="m-site">
+      <nav><b>Tally</b><span><i>Pricing</i><i>Docs</i><i>Sign in</i></span></nav>
+      <small>Invoices, sorted</small>
+      <h5><span class="ann b"><i>2</i>Get paid before the coffee cools.</span></h5>
+      <p>Send an invoice in under a minute. Tally chases late payers so you don't have to.</p>
+      <span class="ann a"><i>1</i><em>a.cta</em><span class="cta">Start free trial</span></span>
+      <div class="cards"><div><b>₹4.2L</b>collected</div><div><b>3.1 days</b>to paid</div><div><b>98%</b>on time</div></div>
+    </div></div>
+  </section>
+  <div class="m-scrim"></div>
+  <div class="m-sheet">
+    <div class="m-grab"></div>
+    <div class="m-sheet-head"><span class="m-icon on"><svg><use href="#i-pin"/></svg></span><span class="m-icon"><svg><use href="#i-order"/></svg></span><b>Preview</b><span class="m-icon"><svg><use href="#i-refresh"/></svg></span><span class="m-icon"><svg><use href="#i-x"/></svg></span></div>
+    <div class="m-pbody"><div class="m-site">
+      <nav><b>Tally</b><span><i>Pricing</i><i>Docs</i><i>Sign in</i></span></nav>
+      <small>Invoices, sorted</small>
+      <h5><span class="ann b"><i>2</i>Get paid before the coffee cools.</span></h5>
+      <p>Send an invoice in under a minute. Tally chases late payers so you don't have to.</p>
+      <span class="ann a"><i>1</i><em>a.cta</em><span class="cta">Start free trial</span></span>
+      <div class="cards"><div><b>₹4.2L</b>collected</div><div><b>3.1 days</b>to paid</div><div><b>98%</b>on time</div></div>
+    </div></div>
+    <div class="m-note"><span class="m-mono">a.cta · Start free trial</span><div class="m-input">Use the brand blue here|</div><div class="m-foot"><span class="m-btn ghost">Cancel</span><span class="m-btn accent">Add note</span></div></div>
+  </div>
+</div>
+</template>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  /* ---------------- toast + clipboard ---------------- */
+  var toastTimer = 0;
+  function toast(msg) {
+    var old = $('.toast'); if (old) old.remove();
+    var t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.setAttribute('data-annot-ui', '');
+    t.textContent = msg; document.body.appendChild(t);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.remove(); }, 1800);
+  }
+  function selectText(el) {
+    try { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+  }
+  function copy(text, okMsg, fallbackEl) {
+    var fail = function () { if (fallbackEl) { selectText(fallbackEl); toast('Copy blocked here. Text selected, press Ctrl+C'); } else toast('Copy blocked here'); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, fail);
+      else fail();
+    } catch (e) { fail(); }
+  }
+  $$('[data-copy]').forEach(function (b) { b.addEventListener('click', function () { copy(b.getAttribute('data-copy'), 'Copied command', b.previousElementSibling); }); });
+
+  /* ---------------- theme toggle ---------------- */
+  var root = document.documentElement;
+  try { var savedTheme = localStorage.getItem('shram-theme'); if (savedTheme) root.setAttribute('data-theme', savedTheme); } catch (e) {}
+  $('#themeBtn').addEventListener('click', function () {
+    var cur = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = cur === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('shram-theme', next); } catch (e) {}
+  });
+
+  /* ---------------- navigation + developer mode ---------------- */
+  var NAV = [
+    { id: 'overview', label: 'Overview' },
+    { section: 'Screens' },
+    { id: 'onboarding', label: 'Onboarding' },
+    { id: 'signin', label: 'Sign in' },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'workspace', label: 'Workspace' },
+    { section: 'Devices' },
+    { id: 'ipad', label: 'iPad' },
+    { id: 'phone', label: 'Phone' },
+    { section: 'Design' },
+    { id: 'annotation', label: 'Annotation' },
+    { id: 'components', label: 'Components' },
+    { section: 'Developer', dev: true },
+    { id: 'install', label: 'Install', dev: true, items: [['prerequisites', 'Prerequisites'], ['oauth', 'OAuth app'], ['env', 'Environment'], ['run', 'Start'], ['config', 'Project config']] },
+    { id: 'features', label: 'Features', dev: true, items: [['workspaces', 'Workspaces'], ['preview', 'Live Preview'], ['modes', 'Annotation Modes'], ['screenshots', 'Screenshots'], ['steering', 'Steering'], ['guardrails', 'Tool Guardrails'], ['cost', 'Cost Estimate'], ['secrets', 'Secrets']] },
+    { id: 'output', label: 'Output', dev: true },
+    { id: 'schema', label: 'Schema', badge: 'v:1', dev: true, items: [['overlay-messages', 'Overlay Messages'], ['envelope', 'Chat Envelope']] },
+    { id: 'proxy', label: 'Proxy', dev: true },
+    { id: 'kshan', label: 'kshan', dev: true },
+    { id: 'agent', label: 'Agent', dev: true },
+    { id: 'perf', label: 'Performance', dev: true },
+    { section: 'Resources' },
+    { id: 'changelog', label: 'Changelog' },
+    { id: 'faq', label: 'FAQ' }
+  ];
+  var devMode = false;
+  try { devMode = localStorage.getItem('shram-dev') === '1'; } catch (e) {}
+  function visibleNav() { return NAV.filter(function (n) { return devMode || !n.dev; }); }
+  function pagesNow() { return visibleNav().filter(function (n) { return n.id; }); }
+  var allPageIds = NAV.filter(function (n) { return n.id; }).map(function (n) { return n.id; }).concat(['colophon']);
+  var currentPage = 'overview';
+
+  function renderNav(container, current) {
+    container.innerHTML = '';
+    visibleNav().forEach(function (n) {
+      if (n.section) { var s = document.createElement('div'); s.className = 'nav-section'; s.textContent = n.section; if (n.dev) { var p = document.createElement('span'); p.className = 'dev-pill'; p.textContent = 'unlocked'; p.style.marginLeft = '0.4rem'; s.appendChild(p); } container.appendChild(s); return; }
+      var a = document.createElement('a'); a.className = 'nav-link' + (n.id === current ? ' active' : ''); a.href = '#' + n.id; a.textContent = n.label;
+      if (n.id === current) a.setAttribute('aria-current', 'page');
+      if (n.badge) { var b = document.createElement('span'); b.className = 'nav-badge'; b.textContent = n.badge; a.appendChild(b); }
+      container.appendChild(a);
+      if (n.id === current && n.items) {
+        var toc = document.createElement('div'); toc.className = 'nav-toc';
+        n.items.forEach(function (it) {
+          var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = it[1];
+          btn.addEventListener('click', function () { var t = document.getElementById(it[0]); if (t) t.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); closeSheet(); });
+          toc.appendChild(btn);
+        });
+        container.appendChild(toc);
+      }
+    });
+  }
+
+  var sheet = $('#mobileSheet'), menuBtn = $('#menuBtn');
+  function closeSheet() { sheet.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); menuBtn.textContent = 'Menu'; }
+  menuBtn.addEventListener('click', function () {
+    var open = !sheet.classList.contains('open');
+    sheet.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', String(open)); menuBtn.textContent = open ? 'Close' : 'Menu';
+  });
+
+  function addPageNav(id) {
+    var art = $('[data-page="' + id + '"]'); if (!art || id === 'colophon') return;
+    var old = art.querySelector('.page-nav'); if (old) old.remove();
+    var pages = pagesNow();
+    var i = pages.findIndex(function (p) { return p.id === id; });
+    if (i === -1) return;
+    var nav = document.createElement('nav'); nav.className = 'page-nav'; nav.setAttribute('aria-label', 'Previous and next page');
+    if (i > 0) nav.innerHTML += '<a href="#' + pages[i - 1].id + '"><span>Previous</span>' + pages[i - 1].label + '</a>';
+    if (i < pages.length - 1) nav.innerHTML += '<a class="next" href="#' + pages[i + 1].id + '"><span>Next</span>' + pages[i + 1].label + '</a>';
+    art.appendChild(nav);
+  }
+
+  function isDevPage(id) { var n = NAV.find(function (x) { return x.id === id; }); return !!(n && n.dev); }
+
+  function route() {
+    var id = (location.hash || '').replace('#', '');
+    var target = null;
+    if (allPageIds.indexOf(id) === -1) {
+      var el = id && document.getElementById(id);
+      var host = el && el.closest('[data-page]');
+      target = el;
+      id = host ? host.getAttribute('data-page') : 'overview';
+    }
+    if (isDevPage(id) && !devMode) {
+      toast('That page is hidden. Builders know where to tap.');
+      id = 'overview'; target = null;
+    }
+    currentPage = id;
+    $$('[data-page]').forEach(function (p) { p.hidden = p.getAttribute('data-page') !== id; });
+    $$('[data-nav]').forEach(function (c) { renderNav(c, id); });
+    addPageNav(id);
+    closeSheet();
+    if (target) target.scrollIntoView(); else window.scrollTo(0, 0);
+    var p = NAV.find(function (x) { return x.id === id; });
+    document.title = id === 'overview' ? 'Shram' : (p ? p.label : 'Colophon') + ' · Shram';
+    if (id === 'overview') hero.measure();
+    fitAll();
+    layoutMarkers();
+  }
+
+  function applyDev() {
+    root.classList.toggle('dev', devMode);
+    $$('.js-dev-switch').forEach(function (s) { s.setAttribute('aria-checked', String(devMode)); });
+    $$('[data-nav]').forEach(function (c) { renderNav(c, currentPage); });
+    addPageNav(currentPage);
+  }
+  var taps = 0, tapTimer = 0, NEED = 7;
+  $$('.wordmark').forEach(function (w) {
+    w.addEventListener('click', function () {
+      w.classList.remove('tap'); void w.offsetWidth; w.classList.add('tap');
+      clearTimeout(tapTimer); tapTimer = setTimeout(function () { taps = 0; }, 1600);
+      taps++;
+      if (devMode) { if (taps === NEED) { toast('No need, you are already a developer.'); taps = 0; } return; }
+      var left = NEED - taps;
+      if (taps >= 3 && left > 0) toast(left === 1 ? 'You are 1 tap away from developer mode.' : 'You are ' + left + ' taps away from developer mode.');
+      if (left === 0) {
+        taps = 0; devMode = true;
+        try { localStorage.setItem('shram-dev', '1'); } catch (e) {}
+        applyDev();
+        toast('Developer mode on. Welcome to the श्रम behind the screens.');
+      }
+    });
+  });
+  $$('.js-dev-switch').forEach(function (sw) { sw.addEventListener('click', function () {
+    devMode = !devMode;
+    try { localStorage.setItem('shram-dev', devMode ? '1' : '0'); } catch (e) {}
+    applyDev();
+    toast(devMode ? 'Developer mode on' : 'Developer mode off. Tap the wordmark 7 times to bring it back.');
+    if (!devMode && isDevPage(currentPage)) location.hash = '#overview';
+  }); });
+
+  /* ---------------- device frames ---------------- */
+  var DEVICES = {
+    desktop: { w: 1280, h: 800, maxh: 560 },
+    ipadl: { w: 1180, h: 820, maxh: 560, kind: 'ipad' },
+    ipad: { w: 820, h: 1180, maxh: 640 },
+    phone: { w: 390, h: 790, maxh: 620 }
+  };
+  var URLS = { 'tpl-landing': 'shram.dev', 'tpl-auth': 'shram.dev/sign-in', 'tpl-dash': 'shram.dev/workspaces', 'tpl-ws': 'shram.dev/workspace/7f3a' };
+  function hostAttrs(host) { try { return JSON.parse(host.dataset.attrs || '{}'); } catch (e) { return {}; } }
+  function buildHost(host) {
+    var key = host.dataset.device || 'desktop', spec = DEVICES[key], kind = spec.kind || key;
+    var tpl = document.getElementById(host.dataset.tpl);
+    host.innerHTML = '';
+    var box = document.createElement('div'); box.className = 'device-box';
+    var frame = document.createElement('div'); frame.className = 'device ' + kind;
+    if (kind === 'desktop') {
+      var bar = document.createElement('div'); bar.className = 'bar';
+      bar.innerHTML = '<div><i></i><i></i><i></i></div><span></span><div style="width:45px"></div>';
+      bar.querySelector('span').textContent = URLS[host.dataset.tpl] || 'shram.dev';
+      frame.appendChild(bar);
+    }
+    var scr = document.createElement('div'); scr.className = 'screen';
+    scr.style.width = spec.w + 'px'; scr.style.height = spec.h + 'px';
+    var node = tpl.content.firstElementChild.cloneNode(true);
+    var attrs = hostAttrs(host);
+    Object.keys(attrs).forEach(function (k) { node.setAttribute(k, attrs[k]); });
+    scr.appendChild(node);
+    frame.appendChild(scr);
+    box.appendChild(frame);
+    host.appendChild(box);
+    host.setAttribute('role', 'img');
+    host.setAttribute('aria-label', (host.closest('figure') ? host.closest('figure').querySelector('figcaption').textContent : 'Shram screen') + ' (' + key + ')');
+    fit(host);
+  }
+  function fit(host) {
+    var frame = host.querySelector('.device'), box = host.querySelector('.device-box');
+    if (!frame) return;
+    var spec = DEVICES[host.dataset.device || 'desktop'];
+    var fw = frame.offsetWidth, fh = frame.offsetHeight, avail = host.clientWidth;
+    if (!avail || !fw) return;
+    var s = Math.min(1, avail / fw, spec.maxh / fh);
+    frame.style.transform = 'scale(' + s + ')';
+    box.style.width = Math.floor(fw * s) + 'px'; box.style.height = Math.floor(fh * s) + 'px';
+  }
+  function fitAll() { $$('.device-host').forEach(fit); }
+  var hostRO = new ResizeObserver(function (entries) { entries.forEach(function (e) { fit(e.target); }); });
+  var narrow = innerWidth < 700;
+  $$('.device-host').forEach(function (h) { if (narrow && h.id && (h.dataset.device || 'desktop') === 'desktop') h.dataset.device = 'phone'; buildHost(h); hostRO.observe(h); });
+
+  function setHostAttrs(host, changes) {
+    var attrs = hostAttrs(host);
+    Object.keys(changes).forEach(function (k) { attrs[k] = changes[k]; });
+    host.dataset.attrs = JSON.stringify(attrs);
+    var node = host.querySelector('.screen > .m-app');
+    if (node) Object.keys(changes).forEach(function (k) { node.setAttribute(k, changes[k]); });
+  }
+  function currentVal(seg) {
+    var host = document.getElementById(seg.dataset.for), kind = seg.dataset.kind;
+    if (kind === 'device') return host.dataset.device;
+    var tplRoot = document.getElementById(host.dataset.tpl).content.firstElementChild;
+    var attrs = hostAttrs(host);
+    var get = function (a) { return attrs[a] != null ? attrs[a] : tplRoot.getAttribute(a); };
+    if (kind === 'attr') return get(seg.dataset.attr);
+    if (get('data-note') === 'on') return 'note';
+    if (get('data-sheet') === 'on') return 'sheet';
+    if (get('data-drawer') === 'on') return 'drawer';
+    return 'none';
+  }
+  function syncSegs() {
+    $$('.seg[data-for]').forEach(function (seg) {
+      var v = currentVal(seg);
+      $$('button', seg).forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.val === v)); });
+    });
+  }
+  function setDevice(host, val) { host.dataset.device = val; buildHost(host); }
+  $$('.seg[data-for]').forEach(function (seg) {
+    seg.setAttribute('role', 'group');
+    $$('button', seg).forEach(function (b) {
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        var host = document.getElementById(seg.dataset.for), kind = seg.dataset.kind, v = b.dataset.val;
+        if (kind === 'device') setDevice(host, v);
+        else if (kind === 'attr') { var c = {}; c[seg.dataset.attr] = v; setHostAttrs(host, c); }
+        else {
+          setHostAttrs(host, { 'data-drawer': v === 'drawer' ? 'on' : 'off', 'data-sheet': (v === 'sheet' || v === 'note') ? 'on' : 'off', 'data-note': v === 'note' ? 'on' : 'off' });
+          if (v === 'note') setHostAttrs(host, { 'data-ann': 'hover' });
+          var dev = host.dataset.device;
+          if ((v === 'sheet' || v === 'note') && dev !== 'phone') { setDevice(host, 'phone'); toast('The preview sheet is the phone layout. Switched to Phone.'); }
+          if (v === 'drawer' && (dev === 'desktop' || dev === 'ipadl')) { setDevice(host, 'ipad'); toast('Agents are always visible on wide screens. Switched to iPad.'); }
+        }
+        syncSegs();
+      });
+    });
+  });
+  syncSegs();
+
+  /* ---------------- demo widgets ---------------- */
+  $$('[data-flash]').forEach(function (b) { b.addEventListener('click', function () { toast(b.getAttribute('data-flash')); }); });
+  function openModal() {
+    var ov = document.createElement('div'); ov.className = 'modal-overlay';
+    var m = document.createElement('div'); m.className = 'modal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'modalTitle');
+    m.innerHTML = '<h3 id="modalTitle">Delete workspace?</h3><p>The container and its files go away. Your GitHub repo is not touched.</p><p>You can annotate this dialog too: open the toolbar first, then the modal.</p><div class="modal-foot"><button class="btn ghost" data-close>Cancel</button><button class="btn primary" data-close>Delete</button></div>';
+    var close = function () { ov.remove(); m.remove(); document.removeEventListener('keydown', esc); $('#openModal').focus(); };
+    var esc = function (e) { if (e.key === 'Escape' && !annot.active) close(); };
+    ov.addEventListener('click', function () { if (!annot.active) close(); });
+    $$('[data-close]', m).forEach(function (b) { b.addEventListener('click', function () { if (!annot.active) close(); }); });
+    m.__close = close;
+    document.body.appendChild(ov); document.body.appendChild(m); document.addEventListener('keydown', esc);
+    $('[data-close]', m).focus();
+  }
+  $('#openModal').addEventListener('click', openModal);
+
+  /* ---------------- hero demo ---------------- */
+  var hero = (function () {
+    var wrap = $('#heroDemo'), stage = $('#hdStage');
+    var W = 560, H = 340, scale = 1;
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var cursor = $('#hdCursor'), hover = $('#hdHover'), layer = $('#hdLayer');
+    var prev = $('#hdPrev'), head = $('#hdHead'), cta = $('#hdCta'), toggle = $('#hdToggle');
+    var msgs = $('#hdMsgs'), text = $('#hdText'), input = $('#hdInput'), send = $('#hdSend');
+    var cur = { x: 300, y: 200 };
+
+    function measure() {
+      var w = wrap.clientWidth || W;
+      scale = w / W;
+      stage.style.transform = 'scale(' + scale + ')';
+      wrap.style.height = Math.round(H * scale) + 'px';
+    }
+    new ResizeObserver(measure).observe(wrap);
+    measure();
+
+    function rel(el) {
+      var s = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+      return { x: (r.left - s.left) / scale, y: (r.top - s.top) / scale, w: r.width / scale, h: r.height / scale };
+    }
+    function wait(ms) {
+      return new Promise(function (res) {
+        var left = ms, last = performance.now();
+        (function tick(t) {
+          t = t || performance.now();
+          if (!root.classList.contains('paused')) left -= (t - last);
+          last = t;
+          if (left <= 0) res(); else requestAnimationFrame(tick);
+        })();
+      });
+    }
+    function moveTo(el, dx, dy) {
+      var r = rel(el); cur = { x: r.x + r.w * (dx == null ? 0.5 : dx), y: r.y + r.h * (dy == null ? 0.55 : dy) };
+      cursor.style.transform = 'translate(' + (cur.x - 3) + 'px,' + (cur.y - 2) + 'px)';
+      return wait(750);
+    }
+    function click() { cursor.classList.add('down'); return wait(140).then(function () { cursor.classList.remove('down'); return wait(120); }); }
+    function showHover(el, label) {
+      var r = rel(el);
+      hover.style.left = (r.x - 3) + 'px'; hover.style.top = (r.y - 3) + 'px'; hover.style.width = (r.w + 6) + 'px'; hover.style.height = (r.h + 6) + 'px';
+      hover.querySelector('em').textContent = label; hover.classList.add('show');
+    }
+    function hideHover() { hover.classList.remove('show'); }
+    function select(el, n) {
+      var r = rel(el);
+      var o = document.createElement('div'); o.className = 'hd-sel'; o.style.cssText = 'left:' + (r.x - 3) + 'px;top:' + (r.y - 3) + 'px;width:' + (r.w + 6) + 'px;height:' + (r.h + 6) + 'px';
+      var b = document.createElement('div'); b.className = 'hd-badge'; b.textContent = n; b.style.left = (r.x - 11) + 'px'; b.style.top = (r.y - 11) + 'px';
+      layer.appendChild(o); layer.appendChild(b);
+    }
+    function addMsg(cls, html) { var d = document.createElement('div'); d.className = cls; d.innerHTML = html; msgs.appendChild(d); return d; }
+    function typeText(s) {
+      var i = 0;
+      return new Promise(function (res) {
+        (function step() { if (i > s.length) return res(); text.textContent = s.slice(0, i++); wait(28).then(step); })();
+      });
+    }
+    function reset() {
+      layer.innerHTML = ''; msgs.innerHTML = ''; text.textContent = '';
+      toggle.classList.remove('on'); prev.classList.remove('annotating');
+      head.classList.remove('fixed'); cta.classList.remove('fixed'); hideHover();
+    }
+    var NOTE = 'Use the brand blue on the CTA and tighten the headline';
+    function finalState() {
+      reset();
+      toggle.classList.add('on'); prev.classList.add('annotating');
+      head.classList.add('fixed'); cta.classList.add('fixed');
+      select(cta, 1); select(head, 2);
+      $$('.hd-badge, .hd-sel', layer).forEach(function (x) { x.classList.add('ok'); });
+      addMsg('hd-msg user', NOTE + '<div class="hd-chips"><span>2 elements</span><span>2 crops</span></div>');
+      addMsg('hd-tool', 'edit src/Hero.tsx <b>+3</b> <i>−2</i>');
+      addMsg('hd-msg agent', 'Done. CTA uses <code>--brand-600</code>, headline tracking is −0.03em.');
+      cursor.style.display = 'none';
+    }
+    async function run() {
+      for (;;) {
+        reset(); await wait(700);
+        await moveTo(toggle); await click(); toggle.classList.add('on'); prev.classList.add('annotating'); await wait(350);
+        await moveTo(cta); showHover(cta, 'span.hd-cta'); await wait(550); await click(); select(cta, 1); await wait(300);
+        await moveTo(head, 0.4, 0.5); showHover(head, 'h4.hd-head'); await wait(550); await click(); select(head, 2); hideHover(); await wait(300);
+        await moveTo(input, 0.4, 0.5); await click(); await typeText(NOTE); await wait(250);
+        await moveTo(send); await click(); text.textContent = '';
+        addMsg('hd-msg user', NOTE + '<div class="hd-chips"><span>2 elements</span><span>2 crops</span></div>');
+        await wait(700);
+        addMsg('hd-msg agent', 'Reading 2 annotated elements…'); await wait(900);
+        addMsg('hd-tool', 'edit src/Hero.tsx <b>+3</b> <i>−2</i>'); await wait(600);
+        cta.classList.add('fixed'); head.classList.add('fixed'); await wait(600);
+        $$('.hd-badge, .hd-sel', layer).forEach(function (x) { x.classList.add('ok'); });
+        addMsg('hd-msg agent', 'Done. CTA uses <code>--brand-600</code>, headline tracking is −0.03em.');
+        await wait(3200);
+      }
+    }
+    if (reduce) finalState(); else { cursor.style.transform = 'translate(300px,200px)'; run(); }
+    return { measure: measure };
+  })();
+
+  /* ---------------- annotation toolbar ---------------- */
+  var annot = { active: false, mode: 'ordered', items: [], counter: 0, pending: null };
+  var tb = $('#annotToolbar'), tbMain = $('#tbMain'), hoverBox = $('#annotHover'), mLayer = $('#annotLayer');
+
+  function isUI(el) { return !el || !el.closest || el.closest('[data-annot-ui]') || el.closest('.annot-pop'); }
+  function eligible(el) {
+    if (isUI(el)) return null;
+    if (el === document.body || el === root || el.id === 'main') return null;
+    if (el.closest('.hd-stage')) el = el.closest('.hero-demo');
+    if (!el.closest('#main, .side-nav, .mobile-bar, .mobile-sheet, .modal')) return null;
+    return el;
+  }
+  function label(el) {
+    var t = el.tagName.toLowerCase();
+    var c = (el.getAttribute('class') || '').trim().split(/\s+/)[0];
+    return t + (el.id ? '#' + el.id : c ? '.' + c : '');
+  }
+  function cssPath(el) {
+    var parts = [];
+    while (el && el.nodeType === 1 && el !== document.body) {
+      if (el.id) { parts.unshift('#' + el.id); break; }
+      var p = el.tagName.toLowerCase(), c = (el.getAttribute('class') || '').trim().split(/\s+/)[0];
+      if (c) p += '.' + c;
+      var par = el.parentElement;
+      if (par) {
+        var same = Array.prototype.filter.call(par.children, function (s) { return s.tagName === el.tagName; });
+        if (same.length > 1) p += ':nth-of-type(' + (same.indexOf(el) + 1) + ')';
+      }
+      parts.unshift(p);
+      el = par;
+    }
+    return parts.join(' > ');
+  }
+  function snippet(el) { var s = (el.value || el.innerText || el.getAttribute('aria-label') || el.placeholder || '').replace(/\s+/g, ' ').trim(); return s.length > 60 ? s.slice(0, 57) + '…' : s; }
+  function boxOf(el) { var r = el.getBoundingClientRect(); return { x: r.left + scrollX, y: r.top + scrollY, w: r.width, h: r.height, vis: r.width > 0 || r.height > 0 }; }
+
+  function setActive(on) {
+    annot.active = on;
+    tbMain.setAttribute('aria-pressed', String(on));
+    tbMain.setAttribute('aria-label', on ? 'Stop annotating' : 'Annotate this page');
+    tb.classList.toggle('open', on);
+    root.classList.toggle('annotating', on);
+    if (!on) { hoverBox.classList.remove('show'); closePop(); }
+  }
+  tbMain.addEventListener('click', function () { setActive(!annot.active); if (annot.active) toast('Click any element to annotate it'); });
+
+  $('#tbPause').addEventListener('click', function () {
+    var p = !root.classList.contains('paused');
+    root.classList.toggle('paused', p);
+    this.setAttribute('aria-pressed', String(p));
+    this.setAttribute('aria-label', p ? 'Resume animations' : 'Pause animations');
+    toast(p ? 'Animations paused' : 'Animations resumed');
+  });
+  $('#tbMode').addEventListener('click', function () {
+    annot.mode = annot.mode === 'ordered' ? 'unordered' : 'ordered';
+    this.querySelector('.tb-mode').textContent = annot.mode === 'ordered' ? '1·2' : '•';
+    this.setAttribute('aria-label', 'Marker mode: ' + annot.mode);
+    this.title = annot.mode === 'ordered' ? 'Switch to unordered markers' : 'Switch to ordered markers';
+    layoutMarkers(); updateOutput();
+    toast(annot.mode === 'ordered' ? 'Ordered: click order is sent' : 'Unordered: order is ignored');
+  });
+  $('#tbCopy').addEventListener('click', function () {
+    if (!annot.items.length) { toast('Nothing to copy yet'); return; }
+    copy(buildOutput(), 'Copied ' + annot.items.length + ' annotation' + (annot.items.length > 1 ? 's' : ''), $('#live-output'));
+  });
+  $('#copyLive').addEventListener('click', function () {
+    if (!annot.items.length) { toast('Nothing to copy yet'); return; }
+    copy(buildOutput(), 'Copied output', $('#live-output'));
+  });
+  $('#tbClear').addEventListener('click', function () { annot.items = []; annot.counter = 0; layoutMarkers(); updateOutput(); toast('Cleared'); });
+
+  document.addEventListener('mousemove', function (e) {
+    if (!annot.active || annot.pending) return;
+    var el = eligible(e.target);
+    if (!el) { hoverBox.classList.remove('show'); return; }
+    var b = boxOf(el);
+    hoverBox.style.left = (b.x - 3) + 'px'; hoverBox.style.top = (b.y - 3) + 'px';
+    hoverBox.style.width = (b.w + 6) + 'px'; hoverBox.style.height = (b.h + 6) + 'px';
+    hoverBox.querySelector('span').textContent = label(el);
+    hoverBox.classList.add('show');
+  }, { passive: true });
+
+  document.addEventListener('click', function (e) {
+    if (!annot.active) return;
+    if (isUI(e.target)) return;
+    var el = eligible(e.target);
+    if (!el) return;
+    e.preventDefault(); e.stopPropagation();
+    openPop(el, e.clientX, e.clientY);
+  }, true);
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && annot.active) { if (annot.pending) closePop(); else setActive(false); }
+  });
+
+  function openPop(el, cx, cy) {
+    closePop();
+    hoverBox.classList.remove('show');
+    var pop = document.createElement('div'); pop.className = 'annot-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Add annotation');
+    var existing = annot.items.find(function (it) { return it.el === el; });
+    pop.innerHTML = '<div class="pop-head"></div><textarea id="annotNote" placeholder="What should change?"></textarea><div class="pop-foot"><small>⌘/Ctrl + Enter to add</small><span style="display:flex;gap:.35rem">' + (existing ? '<button class="btn danger" data-act="del">Remove</button>' : '') + '<button class="btn ghost" data-act="cancel">Cancel</button><button class="btn primary" data-act="add">' + (existing ? 'Save' : 'Add') + '</button></span></div>';
+    pop.querySelector('.pop-head').textContent = cssPath(el);
+    var ta = pop.querySelector('textarea');
+    if (existing) ta.value = existing.note;
+    document.body.appendChild(pop);
+    var w = pop.offsetWidth, h = pop.offsetHeight;
+    var x = Math.min(Math.max(16, cx + 12), innerWidth - w - 16), y = cy + 14;
+    if (y + h > innerHeight - 70) y = Math.max(16, cy - h - 14);
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+    var outline = document.createElement('div'); outline.className = 'annot-outline'; outline.setAttribute('data-annot-ui', '');
+    var b = boxOf(el); outline.style.cssText = 'left:' + (b.x - 3) + 'px;top:' + (b.y - 3) + 'px;width:' + (b.w + 6) + 'px;height:' + (b.h + 6) + 'px';
+    mLayer.appendChild(outline);
+    annot.pending = { el: el, pop: pop, outline: outline };
+    ta.focus();
+    pop.addEventListener('click', function (e) {
+      var act = e.target.getAttribute && e.target.getAttribute('data-act');
+      if (act === 'cancel') closePop();
+      if (act === 'add') commit(el, ta.value);
+      if (act === 'del') { annot.items = annot.items.filter(function (it) { return it.el !== el; }); renumber(); closePop(); layoutMarkers(); updateOutput(); }
+    });
+    ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit(el, ta.value); });
+  }
+  function closePop() {
+    if (!annot.pending) return;
+    annot.pending.pop.remove(); annot.pending.outline.remove(); annot.pending = null;
+  }
+  function renumber() { annot.items.forEach(function (it, i) { it.order = i + 1; }); annot.counter = annot.items.length; }
+  function commit(el, note) {
+    note = (note || '').trim();
+    if (!note) { toast('Write a note first'); return; }
+    var existing = annot.items.find(function (it) { return it.el === el; });
+    if (existing) existing.note = note;
+    else annot.items.push({ el: el, selector: cssPath(el), tag: el.tagName, text: snippet(el), note: note, order: ++annot.counter });
+    closePop(); layoutMarkers(); updateOutput();
+    toast(existing ? 'Annotation updated' : 'Annotation ' + annot.counter + ' added');
+  }
+
+  function layoutMarkers() {
+    $$('.annot-marker', mLayer).forEach(function (m) { m.remove(); });
+    annot.items.forEach(function (it) {
+      var b = boxOf(it.el);
+      if (!b.vis || !document.contains(it.el)) return;
+      var m = document.createElement('button');
+      m.className = 'annot-marker' + (annot.mode === 'unordered' ? ' dot' : '');
+      m.textContent = it.order; m.setAttribute('data-annot-ui', '');
+      m.setAttribute('aria-label', 'Annotation ' + it.order + ': ' + it.note);
+      m.title = it.note;
+      m.style.left = (b.x - 10) + 'px'; m.style.top = (b.y - 10) + 'px';
+      m.addEventListener('click', function (e) { e.stopPropagation(); if (!annot.active) setActive(true); var r = it.el.getBoundingClientRect(); openPop(it.el, r.left, r.top); });
+      mLayer.appendChild(m);
+    });
+    $('#tbCount').textContent = annot.items.length ? annot.items.length : '';
+  }
+  addEventListener('resize', layoutMarkers);
+  setInterval(function () { if (annot.items.length) layoutMarkers(); }, 800);
+
+  function buildOutput() {
+    var page = (location.hash || '#overview').slice(1) || 'overview';
+    var lines = ['## Page feedback: shram / ' + page, '**Viewport:** ' + innerWidth + '×' + innerHeight + ' · **Mode:** ' + annot.mode, ''];
+    annot.items.forEach(function (it) {
+      var b = boxOf(it.el);
+      lines.push('### ' + (annot.mode === 'ordered' ? it.order + '. ' : '• ') + label(it.el));
+      lines.push('**Selector:** `' + it.selector + '`');
+      if (it.text) lines.push('**Text:** "' + it.text + '"');
+      lines.push('**Bounds:** x ' + Math.round(b.x) + ', y ' + Math.round(b.y) + ', ' + Math.round(b.w) + '×' + Math.round(b.h));
+      lines.push('**Note:** ' + it.note, '');
+    });
+    return lines.join('\n').trim();
+  }
+  function updateOutput() {
+    $('#live-output').textContent = annot.items.length ? buildOutput() : 'No annotations yet. Turn on the toolbar and click something.';
+  }
+
+  /* ---------------- component library viewport ---------------- */
+  var VP_NOTES = { desktop: 'Pointer · 28px icon buttons · popovers · three panes', ipad: 'Touch · 40px targets · popovers · two panes, agents in a drawer', phone: 'Touch · 40–44px targets · sheets instead of popovers · one screen' };
+  function setVp(v) {
+    $('#lib').setAttribute('data-vp', v);
+    $$('#vpSeg button').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.val === v)); });
+    $('#vpNote').textContent = VP_NOTES[v];
+    layoutMarkers();
+  }
+  $$('#vpSeg button').forEach(function (b) { b.type = 'button'; b.addEventListener('click', function () { setVp(b.dataset.val); }); });
+  setVp(innerWidth < 700 ? 'phone' : 'desktop');
+
+  addEventListener('hashchange', route);
+  applyDev();
+  route();
+})();
+</script>
+
+</body>
+</html>
